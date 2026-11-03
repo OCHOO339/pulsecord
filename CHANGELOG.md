@@ -1,5 +1,6 @@
 # PulseCord
 
+- Correction du démarrage du renderer : les annonces attendent que Discord ait initialisé React avant de l’utiliser. L’erreur « reading memo » ne bloque plus le chargement de PulseCord.
 - Mise à jour intégrée : vérification du build activé avant fermeture, relancement explicite de l’exécutable Discord sans anciens arguments et affichage du build réellement chargé. Un redémarrage incomplet n’est plus présenté comme un client à jour.
 - Ajout d’un point d’insertion dédié aux paramètres utilisateur pour conserver la section PulseCord lorsque le constructeur partagé des menus Discord change, sans dupliquer ses rubriques.
 - Placement de PulseCord directement sous « Messages privés », à côté des conversations, avec sa hauteur réservée dans la liste et prise en charge des catégories PinDMs.

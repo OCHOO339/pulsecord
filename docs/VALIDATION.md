@@ -41,3 +41,9 @@ Les remplacements de logos sont vérifiés dans Chromium sur les variantes SVG, 
 Pas de validation dans une session Discord authentifiée : montage des paramètres, correspondance des patches, activation réelle des plugins amont, QuickCSS et thèmes restent à vérifier dans le client. Linux/macOS, Flatpak/Snap, signature, notarisation, benchmark et mise à jour distante signée ne sont pas validés.
 
 Le test de l'installateur ne confirme jamais une opération sur un Discord détecté. Toutes les écritures de test utilisent des fixtures créées pour le test.
+# Vérification du démarrage du 3 novembre 2026
+
+Le journal local d’un démarrage de Discord 1.0.9266 a révélé que `React.memo` était appelé à l’import du composant Markdown, avant l’initialisation de React par Discord. Cela interrompait le renderer du mod. Le composant utilise désormais React uniquement lors du rendu. Un test importe le module avec React et Parser encore indéfinis, puis vérifie le rendu après leur initialisation.
+
+Après compilation, contrôle TypeScript et passage des 48 tests, le bundle corrigé a été installé localement. Un nouveau démarrage réel de Discord ne présente plus l’erreur `reading memo` et le journal confirme `Starting plugin PulseCord`. Cette vérification porte sur le chargement réel du plugin ; elle ne remplace pas un contrôle visuel de tous ses écrans ni une certification de tous les plugins amont.
+
