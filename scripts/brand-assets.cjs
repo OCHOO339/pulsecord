@@ -24,6 +24,9 @@ app.whenReady().then(async () => {
         await fs.writeFile('build/icon.png', image.resize({ width: 512, height: 512, quality: 'best' }).toPNG());
         await fs.writeFile('assets/pulsecord-avatar.png', image.resize({ width: 64, height: 64, quality: 'best' }).toPNG());
         await fs.writeFile('assets/pulsecord-splash.png', image.resize({ width: 256, height: 256, quality: 'best' }).toPNG());
+        const banner = nativeImage.createFromPath(path.resolve('assets/pulsecord-inbox-banner.png'));
+        if (banner.isEmpty()) throw Error('PulseCord inbox banner could not be loaded');
+        await fs.writeFile('assets/pulsecord-inbox-background.jpg', banner.resize({ width: Math.min(1440, banner.getSize().width), quality: 'good' }).toJPEG(80));
         console.log('PulseCord Windows ICO and PNG generated from the supplied logo.'); app.exit(0);
     } catch (error) { console.error(error); app.exit(1); }
 });

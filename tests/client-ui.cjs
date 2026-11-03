@@ -9,7 +9,7 @@ app.whenReady().then(async () => {
         const { transform } = tooling('esbuild');
         const base = 'upstream/equicord/src/userplugins/pulsecord/';
         const code = {};
-        for (const file of ['index.tsx', 'brand.ts', 'startup.ts', 'branding.ts', 'inbox.tsx', 'inbox-host.ts', 'home-navigation.ts', 'markdown.tsx', 'dm-section.tsx']) code[file] = (await transform(await fs.readFile(base + file, 'utf8'), { loader: file.endsWith('tsx') ? 'tsx' : 'ts', format: 'cjs' })).code;
+        for (const file of ['index.tsx', 'brand.ts', 'startup.ts', 'branding.ts', 'inbox.tsx', 'inbox-host.ts', 'inbox-background.ts', 'home-navigation.ts', 'markdown.tsx', 'dm-section.tsx']) code[file] = (await transform(await fs.readFile(base + file, 'utf8'), { loader: file.endsWith('tsx') ? 'tsx' : 'ts', format: 'cjs' })).code;
         code.publicDmFixture = await fs.readFile('.cache/discord-public/dm-list-fixture.js', 'utf8').catch(() => '');
         const css = await fs.readFile(base + 'style.css', 'utf8');
         const window = new BrowserWindow({ show: false, width: 900, height: 600, webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false } });
@@ -25,13 +25,14 @@ app.whenReady().then(async () => {
                 props ||= {};
                 if (typeof type === 'function') { const node = type({ ...props, children }); if(node && props.key) node.key = props.key; return node; }
                 const node = document.createElement(type);
-                for (const [key, value] of Object.entries(props)) { if (key === 'onClick') node.addEventListener('click', value); else if (value !== undefined && !['children','key','ref'].includes(key)) node.setAttribute(key === 'className' ? 'class' : key, String(value)); }
+                for (const [key, value] of Object.entries(props)) { if (key === 'onClick') node.addEventListener('click', value); else if (key === 'style') { for (const [property, setting] of Object.entries(value)) { if (property.startsWith('--')) node.style.setProperty(property, setting); else node.style[property] = setting; } } else if (value !== undefined && !['children','key','ref'].includes(key)) node.setAttribute(key === 'className' ? 'class' : key, String(value)); }
                 for (const child of children.flat()) if (child !== null && child !== undefined && child !== false) node.append(child instanceof Node ? child : String(child));
                 return node;
             } };
             const mocks = {
                 './style.css': {}, './brand': brand, './startup': startup, './branding': branding,
                 './voicekeeper-button': { VoiceKeeperButton: () => null, VoiceKeeperIcon: () => null },
+                './inbox-background': load(code['inbox-background.ts'], () => {}),
                 './updates': { startUpdates: () => {}, stopUpdates: () => {}, UpdatesTab: () => null },
                 './inbox-store': { subscribeInbox: () => () => {}, getInboxMessages: () => [{id:'welcome',timestamp:1700000000000,text:'Bienvenue sur PulseCord. Retrouvez ici les annonces et les mises à jour officielles de votre client.',read:true},{id:'update:fixture',timestamp:1700000010000,text:['Une mise à jour PulseCord est disponible.','','# PulseCord','','- Amélioration de la conversation locale.'].join(String.fromCharCode(10)),read:true}], getInboxUnread: () => 1, isInboxOpen: () => true, setInboxOpen: () => {}, loadInbox: async () => {}, stopInboxStore: () => {}, addInboxUpdate: () => {} },
                 '@api/PluginManager': {isPluginEnabled: () => pinsEnabled},

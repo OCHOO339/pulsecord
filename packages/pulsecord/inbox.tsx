@@ -6,6 +6,7 @@ import { getInboxMessages, getInboxUnread, isInboxOpen, loadInbox, setInboxOpen,
 import { UpdatesTab } from "./updates";
 import { AnnouncementMessage } from "./markdown";
 import { findInboxHost } from "./inbox-host";
+import { inboxBackground } from "./inbox-background";
 
 let root: ReturnType<typeof createRoot> | undefined;
 let container: HTMLDivElement | undefined;
@@ -16,7 +17,7 @@ export const OfficialConversation = ErrorBoundary.wrap(() => {
     const messages = React.useSyncExternalStore(subscribeInbox, getInboxMessages);
     const scroller = React.useRef<HTMLDivElement>(null);
     React.useEffect(() => { const element = scroller.current; if (element) element.scrollTop = element.scrollHeight; }, [messages]);
-    return <section className="pc-official-chat" aria-label="Conversation PulseCord">
+    return <section className="pc-official-chat" aria-label="Conversation PulseCord" style={{ "--pc-inbox-background": `url("${inboxBackground}")` } as React.CSSProperties}>
         <header className="pc-chat-header"><img src={brand.logo} width={32} height={32} alt="" /><strong>PulseCord</strong><span className="pc-official">✓ OFFICIAL</span><span className="pc-chat-local">Annonces locales</span><button onClick={closeOfficialInbox} aria-label="Fermer la conversation PulseCord">×</button></header>
         <div className="pc-chat-scroll" ref={scroller} role="log" aria-label="Annonces PulseCord">
             <div className="pc-chat-intro"><img src={brand.logo} width={80} height={80} alt="" /><h1>PulseCord</h1><p>Le début de votre conversation avec PulseCord.</p></div>

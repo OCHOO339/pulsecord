@@ -1,5 +1,6 @@
 # PulseCord
 
+- Fond doré Pulse flouté dans la conversation officielle, avec un voile sombre pour garder les messages lisibles.
 - Icône VoiceKeeper restaurée, y compris pendant le chargement des animations.
 - Le bouton VoiceKeeper apparaît dès le démarrage de Discord, même quand la barre vocale s’affiche avant le chargement des plugins.
 - Conversation PulseCord replacée à droite de la liste des MP, défilement contenu dans la conversation et notes de mises à jour repliées pour faciliter la lecture.

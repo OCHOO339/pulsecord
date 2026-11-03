@@ -96,6 +96,8 @@ cpSync('packages/installer/core.mjs', base + 'src/main/pulsecordUpdateCore.mjs')
 cpSync('packages/updates/protocol.mjs', base + 'src/main/pulsecordUpdateProtocol.mjs');
 const logo = `data:image/png;base64,${readFileSync('assets/pulsecord-avatar.png').toString('base64')}`;
 const splashLogo = `data:image/png;base64,${readFileSync('assets/pulsecord-splash.png').toString('base64')}`;
+const inboxBackground = `data:image/jpeg;base64,${readFileSync('assets/pulsecord-inbox-background.jpg').toString('base64')}`;
+writeFileSync(base + 'src/userplugins/pulsecord/inbox-background.ts', `export const inboxBackground = ${JSON.stringify(inboxBackground)};\n`);
 const fontCss = readFileSync('assets/fonts/cause.css', 'utf8').replace(/url\(([^)]+)\)/g, (_, file) => `url("data:font/woff2;base64,${readFileSync('assets/fonts/' + file).toString('base64')}")`);
 writeFileSync(base + 'src/userplugins/pulsecord/brand.ts', `export const brand = ${JSON.stringify({ ...brand, logo, splashLogo, updates, fontCss })};\n`);
 cpSync(base + 'LICENSE', 'LICENSE');
