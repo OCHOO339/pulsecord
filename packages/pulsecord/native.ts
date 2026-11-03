@@ -10,22 +10,28 @@ import { bundleId, isOlder, MAX_BUNDLE_BYTES, verifyDownload, verifyRelease } fr
 import { app } from "electron";
 import { unzipSync } from "fflate";
 import { promises as fs } from "original-fs";
-import { join, resolve, sep } from "path";
+import { basename, join, resolve, sep } from "path";
 
 interface Release {
     version: string; bundleId: string; bundleUrl: string; sha256: string; size: number; changelog: string;
 }
 export interface UpdateState {
-    phase: "unconfigured" | "idle" | "checking" | "current" | "available" | "installing" | "restarting" | "error";
+    phase: "unconfigured" | "idle" | "checking" | "current" | "available" | "restartRequired" | "installing" | "restarting" | "error";
     configured: boolean;
     currentVersion: string;
+    currentBuild?: string;
     nextVersion?: string;
     nextBuild?: string;
     changelog?: string;
     error?: string;
 }
 const configured = Boolean(brand.updates.manifestUrl && brand.updates.publicKey);
-let state: UpdateState = { phase: configured ? "idle" : "unconfigured", configured, currentVersion: brand.version };
+// The running main process can still use the previous immutable directory even
+// when the installer has already changed the version pointer on disk.
+const directoryId = basename(__dirname);
+const runningBuild = /^[a-f0-9]{64}$/.test(directoryId) ? directoryId : undefined;
+const current = { configured, currentVersion: brand.version, currentBuild: runningBuild };
+let state: UpdateState = { ...current, phase: configured ? "idle" : "unconfigured" };
 let pending: Release | undefined;
 let checking: Promise<UpdateState> | undefined;
 let applying = false;
@@ -53,21 +59,23 @@ export async function checkForUpdates(_event: Electron.IpcMainInvokeEvent): Prom
     if (!configured || applying) return { ...state };
     if (checking) return checking;
     checking = (async () => {
-        state = { phase: "checking", configured, currentVersion: brand.version };
+        state = { ...current, phase: "checking" };
         try {
             const bytes = await download(brand.updates.manifestUrl, 128000);
             const release: Release = verifyRelease(JSON.parse(bytes.toString("utf8")), brand.updates.publicKey, process.platform, process.arch);
             const installed = await getInstallation(resources);
             if (isOlder(release.version, installed.version || brand.version)) throw Error("The release server offered an older build");
-            pending = installed.current === release.bundleId ? undefined : release;
-            state = { phase: pending ? "available" : "current", configured, currentVersion: brand.version, ...(pending ? { nextVersion: release.version, nextBuild: release.bundleId, changelog: release.changelog } : {}) };
-        } catch (error) { pending = undefined; state = { phase: "error", configured, currentVersion: brand.version, error: String(error) }; }
+            const selected = installed.current === release.bundleId;
+            const loaded = !runningBuild || runningBuild === release.bundleId;
+            pending = selected && loaded ? undefined : release;
+            state = { ...current, phase: pending ? selected ? "restartRequired" : "available" : "current", ...(pending ? { nextVersion: release.version, nextBuild: release.bundleId, changelog: release.changelog } : {}) };
+        } catch (error) { pending = undefined; state = { ...current, phase: "error", error: String(error) }; }
         return { ...state };
     })();
     try { return await checking; } finally { checking = undefined; }
 }
 export async function applyUpdate(_event: Electron.IpcMainInvokeEvent): Promise<UpdateState> {
-    if (applying || !pending || state.phase !== "available") throw Error("No verified update is ready");
+    if (applying || !pending || !["available", "restartRequired"].includes(state.phase)) throw Error("No verified update is ready");
     applying = true;
     const release = pending;
     state = { ...state, phase: "installing", error: undefined };
@@ -95,8 +103,13 @@ export async function applyUpdate(_event: Electron.IpcMainInvokeEvent): Promise<
         stage = await fs.mkdtemp(join(cache, "stage-"));
         for (const [name, data] of Object.entries(files)) await fs.writeFile(join(stage, name), data, { flag: "wx" });
         await activateUpdate(resources, stage);
+        if ((await getInstallation(resources)).current !== release.bundleId) throw Error("Le nouveau build n’a pas été activé. Discord ne sera pas redémarré.");
+        // Discard inherited launch arguments, which can point at an older app
+        // archive or start a Squirrel maintenance invocation instead of Discord.
+        // Schedule relaunch here so a scheduling failure reaches the renderer.
+        app.relaunch({ execPath: process.execPath, args: [] });
         state = { ...state, phase: "restarting" };
-        setTimeout(() => { app.relaunch(); app.exit(0); }, 700);
+        setTimeout(() => { app.exit(0); }, 700);
         return { ...state };
     } catch (error) {
         state = { ...state, phase: "error", error: String(error) };

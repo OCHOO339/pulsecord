@@ -63,6 +63,7 @@ const labels: Record<UpdateState["phase"], string> = {
     checking: "Vérification du canal officiel…",
     current: "PulseCord est à jour.",
     available: "Une mise à jour PulseCord est disponible.",
+    restartRequired: "Le nouveau build est installé, mais Discord utilise encore l’ancien. Relancez-le pour terminer la mise à jour.",
     installing: "Téléchargement, vérification et installation…",
     restarting: "Mise à jour installée. Discord va redémarrer…",
     error: "La mise à jour n'a pas pu être effectuée."
@@ -73,14 +74,15 @@ export const UpdatesTab = ErrorBoundary.wrap(() => {
     const busy = ["checking", "installing", "restarting"].includes(current.phase);
     return <section className="pulsecord"><h1>Updates</h1>
         <p role="status">{labels[current.phase]}</p>
+        <p>Version {current.currentVersion}{current.currentBuild && <> · Build chargé <code>{current.currentBuild.slice(0, 12)}</code></>}{current.nextBuild && <> · Build proposé <code>{current.nextBuild.slice(0, 12)}</code></>}</p>
         {current.changelog && <><h2>Nouveautés</h2><AnnouncementMarkdown text={current.changelog} /></>}
         {current.error && <p role="alert">{current.error}</p>}
         <div className="pc-update-actions"><button disabled={!current.configured || busy} onClick={() => { void check(false); }}>Vérifier les mises à jour</button>
             <button onClick={() => openOfficial()}>Ouvrir la conversation PulseCord</button>
-            {current.phase === "available" && <button onClick={async () => {
+            {["available", "restartRequired"].includes(current.phase) && <button onClick={async () => {
                 publish({ ...state, phase: "installing" });
                 try { publish(await native().applyUpdate()); } catch (error) { publish({ ...state, phase: "error", error: String(error) }); }
-            }}>Mettre à jour et relancer Discord</button>}
+            }}>{current.phase === "restartRequired" ? "Terminer la mise à jour et relancer Discord" : "Mettre à jour et relancer Discord"}</button>}
         </div><p>La mise à jour est vérifiée avant installation. Le redémarrage est automatique après votre clic.</p>
     </section>;
 }, { noop: false });
