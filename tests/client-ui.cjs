@@ -9,7 +9,7 @@ app.whenReady().then(async () => {
         const { transform } = tooling('esbuild');
         const base = 'upstream/equicord/src/userplugins/pulsecord/';
         const code = {};
-        for (const file of ['index.tsx', 'brand.ts', 'startup.ts', 'branding.ts', 'inbox.tsx', 'home-navigation.ts', 'markdown.tsx', 'dm-section.tsx']) code[file] = (await transform(await fs.readFile(base + file, 'utf8'), { loader: file.endsWith('tsx') ? 'tsx' : 'ts', format: 'cjs' })).code;
+        for (const file of ['index.tsx', 'brand.ts', 'startup.ts', 'branding.ts', 'inbox.tsx', 'inbox-host.ts', 'home-navigation.ts', 'markdown.tsx', 'dm-section.tsx']) code[file] = (await transform(await fs.readFile(base + file, 'utf8'), { loader: file.endsWith('tsx') ? 'tsx' : 'ts', format: 'cjs' })).code;
         code.publicDmFixture = await fs.readFile('.cache/discord-public/dm-list-fixture.js', 'utf8').catch(() => '');
         const css = await fs.readFile(base + 'style.css', 'utf8');
         const window = new BrowserWindow({ show: false, width: 900, height: 600, webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false } });
@@ -33,7 +33,7 @@ app.whenReady().then(async () => {
                 './style.css': {}, './brand': brand, './startup': startup, './branding': branding,
                 './voicekeeper-button': { VoiceKeeperButton: () => null, VoiceKeeperIcon: () => null },
                 './updates': { startUpdates: () => {}, stopUpdates: () => {}, UpdatesTab: () => null },
-                './inbox-store': { subscribeInbox: () => () => {}, getInboxMessages: () => [{id:'welcome',timestamp:1700000000000,text:'Bienvenue sur PulseCord. Retrouvez ici les annonces et les mises à jour officielles de votre client.',read:true}], getInboxUnread: () => 1, isInboxOpen: () => true, setInboxOpen: () => {}, loadInbox: async () => {}, stopInboxStore: () => {}, addInboxUpdate: () => {} },
+                './inbox-store': { subscribeInbox: () => () => {}, getInboxMessages: () => [{id:'welcome',timestamp:1700000000000,text:'Bienvenue sur PulseCord. Retrouvez ici les annonces et les mises à jour officielles de votre client.',read:true},{id:'update:fixture',timestamp:1700000010000,text:['Une mise à jour PulseCord est disponible.','','# PulseCord','','- Amélioration de la conversation locale.'].join(String.fromCharCode(10)),read:true}], getInboxUnread: () => 1, isInboxOpen: () => true, setInboxOpen: () => {}, loadInbox: async () => {}, stopInboxStore: () => {}, addInboxUpdate: () => {} },
                 '@api/PluginManager': {isPluginEnabled: () => pinsEnabled},
                 '@plugins/pinDms': {__esModule:true,default:{sections:[2,3,1]}},
                 '@api/Settings': { definePluginSettings: () => ({ store: {}, use: () => ({}) }) },
@@ -45,6 +45,7 @@ app.whenReady().then(async () => {
                 '@webpack/common': { React, Parser: {parse(text,inline,options){if(!options.allowHeading || !options.allowList)throw Error('Announcement parser must enable headings and lists');return [text];}}, NavigationRouter: { transitionTo: route => routes.push(route) }, createRoot: container => ({render: node => container.replaceChildren(node), unmount: () => container.replaceChildren()}) }
             };
             mocks['./markdown'] = load(code['markdown.tsx'], name => mocks[name]);
+            mocks['./inbox-host'] = load(code['inbox-host.ts'], name => mocks[name]);
             const inbox = load(code['inbox.tsx'], name => { if (!(name in mocks)) throw Error('Unmocked inbox import: ' + name); return mocks[name]; });
             mocks['./inbox'] = inbox;
             mocks['./dm-section'] = load(code['dm-section.tsx'], name => mocks[name]);
@@ -121,15 +122,27 @@ app.whenReady().then(async () => {
             };
             fixtures.remove();
             document.querySelector('#root').style.cssText = 'display:flex;padding:0;height:100vh';
-            const sidebar = document.createElement('aside'); sidebar.className = 'sidebar__preview'; sidebar.style.cssText = 'width:240px;flex-shrink:0;background:#171719;padding-top:24px'; sidebar.append(section);
-            const page = document.createElement('div'); page.className = 'page__preview'; page.style.cssText = 'flex:1;position:relative'; page.append(inbox.OfficialConversation());
-            document.querySelector('#root').append(sidebar,page);
+            const outer = document.createElement('div'); outer.className = 'page__outer'; outer.style.cssText = 'display:flex;flex:1;min-width:0;min-height:0';
+            const sidebar = document.createElement('aside'); sidebar.className = 'sidebar__preview'; sidebar.style.cssText = 'width:240px;flex-shrink:0;background:#171719;padding-top:24px';
+            const nestedList = document.createElement('div'); nestedList.className = 'sidebarList__preview'; nestedList.append(section); sidebar.append(nestedList);
+            const resizeHandle = document.createElement('div'); resizeHandle.className = 'sidebarResizeHandle__preview'; resizeHandle.style.cssText = 'width:4px;flex-shrink:0';
+            const page = document.createElement('section'); page.style.cssText = 'flex:1;min-width:0;min-height:0;position:relative;overflow:auto'; page.append(inbox.OfficialConversation());
+            outer.append(sidebar,resizeHandle,page); document.querySelector('#root').append(outer);
             inbox.startOfficialInbox();
             window.checkInboxLifecycle = async () => {
                 document.querySelector('.pc-dm-row').click(); inbox.handleInboxNavigation(); await new Promise(resolve => setTimeout(resolve, 120));
                 if (!document.querySelector('.pc-inbox-root .pc-official-chat')) throw Error('DM click did not open the conversation');
+                const overlay = document.querySelector('.pc-inbox-root');
+                if (overlay.parentElement !== page || overlay.getBoundingClientRect().left < sidebar.getBoundingClientRect().right) throw Error('Conversation must not cover the DM sidebar or mount in its resize handle');
+                if (overlay.scrollHeight > overlay.clientHeight || document.documentElement.scrollHeight > innerHeight) throw Error('Conversation leaked scrolling to the page');
+                const details = overlay.querySelector('.pc-announcement-details');
+                if (!details || details.open) throw Error('Historical release notes must start collapsed');
+                details.open = true;
+                if (document.documentElement.scrollHeight > innerHeight) throw Error('Expanding release notes leaked scrolling to the page');
+                details.open = false;
                 inbox.handleInboxNavigation();
                 if (document.querySelector('.pc-inbox-root')) throw Error('Conversation did not unmount');
+                if (page.style.overflow !== 'auto') throw Error('Original page scrolling was not restored');
                 inbox.stopOfficialInbox();
                 return true;
             };

@@ -4,7 +4,8 @@ import { createRoot, NavigationRouter, React } from "@webpack/common";
 import { brand } from "./brand";
 import { getInboxMessages, getInboxUnread, isInboxOpen, loadInbox, setInboxOpen, stopInboxStore, subscribeInbox } from "./inbox-store";
 import { UpdatesTab } from "./updates";
-import { AnnouncementMarkdown } from "./markdown";
+import { AnnouncementMessage } from "./markdown";
+import { findInboxHost } from "./inbox-host";
 
 let root: ReturnType<typeof createRoot> | undefined;
 let container: HTMLDivElement | undefined;
@@ -13,17 +14,17 @@ let timer: ReturnType<typeof setTimeout> | undefined;
 let enabled = false;
 export const OfficialConversation = ErrorBoundary.wrap(() => {
     const messages = React.useSyncExternalStore(subscribeInbox, getInboxMessages);
-    const end = React.useRef<HTMLDivElement>(null);
-    React.useEffect(() => { end.current?.scrollIntoView({ block: "nearest" }); }, [messages]);
+    const scroller = React.useRef<HTMLDivElement>(null);
+    React.useEffect(() => { const element = scroller.current; if (element) element.scrollTop = element.scrollHeight; }, [messages]);
     return <section className="pc-official-chat" aria-label="Conversation PulseCord">
         <header className="pc-chat-header"><img src={brand.logo} width={32} height={32} alt="" /><strong>PulseCord</strong><span className="pc-official">✓ OFFICIAL</span><span className="pc-chat-local">Annonces locales</span><button onClick={closeOfficialInbox} aria-label="Fermer la conversation PulseCord">×</button></header>
-        <div className="pc-chat-scroll" role="log" aria-label="Annonces PulseCord">
+        <div className="pc-chat-scroll" ref={scroller} role="log" aria-label="Annonces PulseCord">
             <div className="pc-chat-intro"><img src={brand.logo} width={80} height={80} alt="" /><h1>PulseCord</h1><p>Le début de votre conversation avec PulseCord.</p></div>
             {messages.map(message => <article className="pc-chat-message" key={message.id}>
                 <img src={brand.logo} width={40} height={40} alt="" />
-                <div><header><strong>PulseCord</strong><span className="pc-official">✓ OFFICIAL</span><time dateTime={new Date(message.timestamp).toISOString()}>{new Date(message.timestamp).toLocaleString()}</time></header><AnnouncementMarkdown text={message.text} /></div>
+                <div><header><strong>PulseCord</strong><span className="pc-official">✓ OFFICIAL</span><time dateTime={new Date(message.timestamp).toISOString()}>{new Date(message.timestamp).toLocaleString()}</time></header><AnnouncementMessage text={message.text} /></div>
             </article>)}
-            <div className="pc-chat-update"><UpdatesTab /></div><div ref={end} />
+            <div className="pc-chat-update"><UpdatesTab inConversation /></div>
         </div>
         <footer className="pc-chat-footer">Ce canal local reçoit uniquement les annonces PulseCord.</footer>
     </section>;
@@ -38,11 +39,8 @@ export const OfficialDmRow = ErrorBoundary.wrap(() => {
 }, { noop: true });
 
 function contentHost() {
-    const sidebar = document.querySelector(".pc-dm-row")?.closest<HTMLElement>('[class*="sidebar_"]');
-    const sibling = sidebar?.nextElementSibling;
-    if (sibling instanceof HTMLElement && !sibling.matches('nav,aside,[class*="sidebar_"]')) return sibling;
-    return document.querySelector<HTMLElement>('[class*="page_"]:not([class*="sidebar_"])')
-        ?? document.querySelector<HTMLElement>('main[class*="chat_"]');
+    const row = document.querySelector<HTMLElement>(".pc-dm-row");
+    return row ? findInboxHost(row) : null;
 }
 export function openOfficialInbox() {
     if (!enabled) return;
@@ -60,8 +58,10 @@ export function openOfficialInbox() {
             return;
         }
         const position = host.style.position;
+        const overflow = host.style.overflow;
         if (getComputedStyle(host).position === "static") host.style.position = "relative";
-        restoreHost = () => { host.style.position = position; };
+        host.style.overflow = "hidden";
+        restoreHost = () => { host.style.position = position; host.style.overflow = overflow; };
         container = document.createElement("div"); container.className = "pc-inbox-root"; host.append(container);
         root = createRoot(container); root.render(<OfficialConversation />); setInboxOpen(true);
     };

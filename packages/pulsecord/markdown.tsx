@@ -11,3 +11,12 @@ export function AnnouncementMarkdown({ text }: { text: string; }) {
         allowEmojiLinks: false
     })}</div>;
 }
+
+export function AnnouncementMessage({ text }: { text: string; }) {
+    const split = text.indexOf("\n\n");
+    if (!text.startsWith("Une mise à jour PulseCord") || split === -1) return <AnnouncementMarkdown text={text} />;
+    return <div className="pc-message-body">
+        <AnnouncementMarkdown text={text.slice(0, split)} />
+        <details className="pc-announcement-details"><summary>Voir les nouveautés</summary><AnnouncementMarkdown text={text.slice(split + 2)} /></details>
+    </div>;
+}

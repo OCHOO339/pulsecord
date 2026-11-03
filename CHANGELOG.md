@@ -1,5 +1,6 @@
 # PulseCord
 
+- Conversation PulseCord replacée à droite de la liste des MP, défilement contenu dans la conversation et notes de mises à jour repliées pour faciliter la lecture.
 - Animation VoiceKeeper pilotée par le lecteur natif des icônes Discord : séquences de survol et de clic, trait animé, durées alignées sur le micro et réduction des animations gérée par Discord.
 - Bouton VoiceKeeper avec icône « interdit » à gauche du micro : activation persistante, état jaune, animation courte et annulation des reconnexions à la désactivation.
 - Correction du démarrage du renderer : les annonces attendent que Discord ait initialisé React avant de l’utiliser. L’erreur « reading memo » ne bloque plus le chargement de PulseCord.
