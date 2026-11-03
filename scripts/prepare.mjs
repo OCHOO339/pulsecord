@@ -31,6 +31,16 @@ function patch(file, changes) {
     writeFileSync(base + file, text);
 }
 patch('src/plugins/_core/settings.tsx', [
+    ['    patches: [', `    patches: [
+        {
+            // Insert at the user-settings root as well as the shared layout
+            // walker. Discord can change the walker independently of this root.
+            find: 'analyticsKey:"user_settings"',
+            replacement: {
+                match: /buildLayout:(\\(\\)=>\\[[^\\]]*\\])(?=,analyticsKey:"user_settings")/,
+                replace: 'buildLayout:()=>$self.buildLayout({key:"$Root",buildLayout:$1})'
+            }
+        },`],
     ['            buildEntry({\n                key: "equicord_main",\n                title: "Equicord",\n                panelTitle: "Equicord Settings",\n                Component: VencordTab,\n                Icon: MainSettingsIcon\n            }),\n', ''],
     ['"Equicord Settings"', `"${brand.name} Settings"`],
     ['            buildEntry({\n                key: "equicord_cloud",\n                title: "Cloud",\n                panelTitle: "Equicord Cloud",\n                Component: CloudTab,\n                Icon: CloudIcon\n            }),\n', ''],
