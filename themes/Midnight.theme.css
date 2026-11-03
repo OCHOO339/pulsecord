@@ -1,0 +1,15 @@
+/**
+ * @name PulseCord Midnight
+ * @description A quiet charcoal palette for Discord.
+ * @author PulseCord contributors
+ * @version 0.2.0
+ * @license GPL-3.0-or-later
+ */
+:root, .theme-dark {
+  --background-primary: #151519;
+  --background-secondary: #202026;
+  --background-tertiary: #101013;
+  --background-base-low: #151519;
+  --background-base-lower: #202026;
+  --brand-500: #f8c332;
+}

@@ -1,0 +1,73 @@
+name: Publish PulseCord
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pulsecord-release
+  cancel-in-progress: false
+
+jobs:
+  windows-release:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/setup@v3
+        with:
+          runtime: node@24.19.0
+          require-lockfile: true
+          cache: true
+      - name: Prepare publisher key
+        env:
+          PULSECORD_UPDATE_KEY_PEM: ${{ secrets.PULSECORD_UPDATE_KEY_PEM }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:PULSECORD_UPDATE_KEY_PEM)) { throw 'Configure the PULSECORD_UPDATE_KEY_PEM repository secret first.' }
+          New-Item -ItemType Directory -Force .pulsecord-publisher | Out-Null
+          [IO.File]::WriteAllText((Join-Path $PWD '.pulsecord-publisher/private-key.pem'), $env:PULSECORD_UPDATE_KEY_PEM)
+          node scripts/setup-updates.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Prepare pinned fork
+        run: |
+          corepack enable
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/prepare.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          pnpm --dir upstream/equicord install --frozen-lockfile
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Compile and validate
+        run: |
+          pnpm build
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          pnpm typecheck
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          pnpm test
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Package installer, signed update and corresponding source
+        run: |
+          pnpm package:installer
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          pnpm publish:prepare
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          pnpm package:source
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Publish official release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          $releaseTag = 'pulsecord-build-' + $env:GITHUB_RUN_NUMBER
+          $archive = (Get-ChildItem -LiteralPath release/updates -Filter '*.zip' | Select-Object -First 1).FullName
+          gh release create $releaseTag 'release/PulseCord Installer.exe' 'release/PulseCord-source.zip' 'release/updates/pulsecord-update.json' $archive --title 'PulseCord' --notes-file CHANGELOG.md --latest --target $env:GITHUB_SHA
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Remove temporary signing key
+        if: always()
+        run: |
+          [IO.File]::Delete((Join-Path $env:GITHUB_WORKSPACE '.pulsecord-publisher/private-key.pem'))

@@ -1,0 +1,12 @@
+{
+  "appId": "org.pulsecord.installer", "productName": "PulseCord Installer",
+  "compression": "store",
+  "artifactName": "PulseCord Installer.${ext}",
+  "directories": { "output": "release" },
+  "files": ["packages/installer/**", "package.json", "LICENSE", "NOTICE.md"],
+  "extraMetadata": { "main": "packages/installer/main.cjs" },
+  "extraResources": [{ "from": "dist/bundle", "to": "bundle" }],
+  "win": { "target": "portable", "icon": "build/icon.ico", "signAndEditExecutable": true },
+  "linux": { "target": "AppImage", "category": "Utility", "icon": "build/icon.png" },
+  "mac": { "target": "dmg", "identity": null }
+}

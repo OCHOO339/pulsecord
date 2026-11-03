@@ -1,0 +1,9 @@
+node_modules/
+dist/
+release/
+.taste-skill/
+upstream/
+*.log
+.cache/
+build/
+.pulsecord-publisher/

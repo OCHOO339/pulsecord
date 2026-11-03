@@ -1,0 +1,12 @@
+{
+  "installer": {
+    "url": "https://github.com/Vencord/Installer.git",
+    "commit": "595991ca27520868af4f9c48adf0c53ee971f1f2",
+    "license": "GPL-3.0"
+  },
+  "equicord": {
+    "url": "https://github.com/Equicord/Equicord.git",
+    "commit": "00abcbeea2ddf4317e02843418f267db62bcb913",
+    "license": "GPL-3.0-or-later"
+  }
+}

@@ -1,0 +1,11 @@
+import { createRequire } from 'node:module';
+import { spawn } from 'node:child_process';
+import { resolve } from 'node:path';
+const require = createRequire(import.meta.url);
+const env = { ...process.env };
+delete env.ELECTRON_RUN_AS_NODE;
+const packaged = process.argv.includes('--packaged-test');
+const args = packaged ? ['--smoke-test'] : process.argv.includes('--site-test') ? ['tests/site-smoke.cjs'] : process.argv.includes('--client-ui-test') ? ['tests/client-ui.cjs'] : ['packages/installer/main.cjs', ...process.argv.slice(2)];
+const child = spawn(packaged ? resolve('release/win-unpacked/PulseCord Installer.exe') : require('electron'), args, { env, stdio: 'inherit', windowsHide: true });
+child.on('error', error => { console.error(error); process.exitCode = 1; });
+child.on('exit', code => { process.exitCode = code ?? 1; });

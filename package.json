@@ -1,0 +1,25 @@
+{
+  "name": "pulsecord-workspace",
+  "private": true,
+  "version": "0.4.0",
+  "description": "PulseCord local Discord mod installer",
+  "author": "PulseCord contributors",
+  "license": "GPL-3.0-or-later",
+  "packageManager": "pnpm@12.15.0",
+  "scripts": {
+    "prepare:fork": "node scripts/prepare.mjs",
+    "build": "node scripts/build-assets.mjs && node scripts/prepare.mjs && corepack pnpm --dir upstream/equicord build --dev --disable-updater && node scripts/stamp-build.mjs",
+    "typecheck": "corepack pnpm --dir upstream/equicord testTsc",
+    "test": "node --test tests/*.test.mjs",
+    "package:source": "node scripts/source.mjs",
+    "setup:updates": "node scripts/setup-updates.mjs",
+    "publish:prepare": "node scripts/publish-update.mjs",
+    "publish:github": "node scripts/publish-github.mjs",
+    "installer": "node scripts/run-installer.mjs",
+    "package:installer": "node scripts/package.mjs && node scripts/build-installer.mjs"
+  },
+  "devDependencies": {
+    "electron": "41.2.1",
+    "electron-builder": "26.0.12"
+  }
+}
