@@ -15,7 +15,7 @@ const NativeAnimatedIcon = findComponentByCodeLazy("useLottieDefaultColors", "in
     initialAnimation: string;
     initialFrame: number;
     ref: RefObject<AnimationHandle | null>;
-    size: string; width: number; height: number; className: string; color: string;
+    size: string; width: number; height: number; className: string; color: string; useLottieDefaultColors: boolean;
 }>;
 const animationSource = async () => ({ default: voiceKeeperAnimation });
 
@@ -30,6 +30,8 @@ export function VoiceKeeperButton({ nameplate, iconForeground, hideTooltips }: U
     useSettings(["plugins.VoiceKeeper.enabled"]);
     const enabled = isPluginEnabled(VoiceKeeper.name);
     const animation = React.useRef<AnimationHandle | null>(null);
+    const iconHost = React.useRef<HTMLSpanElement | null>(null);
+    const [animationReady, setAnimationReady] = React.useState(false);
     const initialFrame = React.useRef(enabled ? 70 : 170);
     const previous = React.useRef(enabled);
     React.useEffect(() => {
@@ -37,6 +39,18 @@ export function VoiceKeeperButton({ nameplate, iconForeground, hideTooltips }: U
         previous.current = enabled;
         animation.current?.play(enabled ? "enable" : "disable");
     }, [enabled]);
+    React.useEffect(() => {
+        const host = iconHost.current;
+        if (!host) return;
+        const observer = new MutationObserver(() => {
+            const path = host.querySelector<SVGPathElement>(".pc-voicekeeper-animation svg path");
+            if (!path || !path.getBoundingClientRect().width) return;
+            setAnimationReady(true);
+            observer.disconnect();
+        });
+        observer.observe(host, { childList: true, subtree: true });
+        return () => observer.disconnect();
+    }, []);
     const hoverMarker = enabled ? "hover_enabled" : "hover_disabled";
     const motionEvents = {
         onMouseEnter: () => animation.current?.play(hoverMarker),
@@ -54,10 +68,13 @@ export function VoiceKeeperButton({ nameplate, iconForeground, hideTooltips }: U
         plated={nameplate != null}
         orangeGlow={enabled}
         {...motionEvents}
-        icon={<NativeAnimatedIcon ref={animation} src={animationSource} markers={voiceKeeperMarkers}
+        icon={<span ref={iconHost} className={`pc-voicekeeper-icon${animationReady ? " pc-voicekeeper-ready" : ""}`}>
+            <VoiceKeeperIcon className="pc-voicekeeper-fallback" />
+            <NativeAnimatedIcon ref={animation} src={animationSource} markers={voiceKeeperMarkers}
             initialAnimation={enabled ? "idle_enabled" : "idle_disabled"} initialFrame={initialFrame.current}
             size="custom" width={20} height={20} color={enabled ? "var(--brand-500)" : "currentColor"}
-            className={`pc-voicekeeper-animation ${iconForeground ?? ""}`} />}
+            useLottieDefaultColors={true} className={`pc-voicekeeper-animation ${iconForeground ?? ""}`} />
+        </span>}
         onClick={() => {
             const wasEnabled = isPluginEnabled(VoiceKeeper.name);
             const success = wasEnabled ? stopPlugin(VoiceKeeper) : startPlugin(VoiceKeeper);

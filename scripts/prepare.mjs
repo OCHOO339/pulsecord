@@ -49,6 +49,17 @@ patch('src/plugins/_core/settings.tsx', [
     ['    name: "Settings",', '    name: "Settings",\n    isModified: true,']
 ]);
 patch('src/api/Settings.ts', [['autoUpdate: true,', 'autoUpdate: false,'], ['autoUpdateNotification: true,', 'autoUpdateNotification: false,']]);
+patch('src/api/UserArea.tsx', [
+    ['import { Logger } from "@utils/Logger";', 'import { Logger } from "@utils/Logger";\nimport { React } from "@webpack/common";'],
+    ['export const buttons = new Map<string, ButtonEntry>();', `export const buttons = new Map<string, ButtonEntry>();
+let buttonRevision = 0;
+const buttonListeners = new Set<() => void>();
+function subscribeButtons(listener: () => void) { buttonListeners.add(listener); return () => { buttonListeners.delete(listener); }; }
+function notifyButtons() { buttonRevision++; for (const listener of buttonListeners) listener(); }`],
+    ['    buttons.set(id, { render, priority });', '    buttons.set(id, { render, priority });\n    notifyButtons();'],
+    ['    buttons.delete(id);', '    if (buttons.delete(id)) notifyButtons();'],
+    ['function UserAreaButtons({ props }: { props: UserAreaRenderProps; }) {', 'function UserAreaButtons({ props }: { props: UserAreaRenderProps; }) {\n    React.useSyncExternalStore(subscribeButtons, () => buttonRevision);']
+]);
 patch('src/components/settings/tabs/plugins/PluginCard.tsx', [
     ['import { PluginMeta } from "~plugins";', 'import { PluginMeta } from "~plugins";\nimport { brand } from "@pulsecord/brand";'],
     ['src: "https://equicord.org/assets/icons/equicord/modified.png"', 'src: brand.logo'],

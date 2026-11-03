@@ -1,5 +1,7 @@
 # PulseCord
 
+- Icône VoiceKeeper restaurée, y compris pendant le chargement des animations.
+- Le bouton VoiceKeeper apparaît dès le démarrage de Discord, même quand la barre vocale s’affiche avant le chargement des plugins.
 - Conversation PulseCord replacée à droite de la liste des MP, défilement contenu dans la conversation et notes de mises à jour repliées pour faciliter la lecture.
 - Animation VoiceKeeper pilotée par le lecteur natif des icônes Discord : séquences de survol et de clic, trait animé, durées alignées sur le micro et réduction des animations gérée par Discord.
 - Bouton VoiceKeeper avec icône « interdit » à gauche du micro : activation persistante, état jaune, animation courte et annulation des reconnexions à la désactivation.
