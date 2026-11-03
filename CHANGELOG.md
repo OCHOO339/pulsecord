@@ -1,5 +1,6 @@
 # PulseCord
 
+- Bannière de la conversation affichée entièrement, avec ses proportions conservées et sans recadrage.
 - Fond doré Pulse flouté dans la conversation officielle, avec un voile sombre pour garder les messages lisibles.
 - Icône VoiceKeeper restaurée, y compris pendant le chargement des animations.
 - Le bouton VoiceKeeper apparaît dès le démarrage de Discord, même quand la barre vocale s’affiche avant le chargement des plugins.
