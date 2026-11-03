@@ -79,6 +79,7 @@ patch('tsconfig.json', [['"paths": {', '"paths": {\n            "@pulsecord": ["
 mkdirSync(base + 'src/userplugins', { recursive: true });
 cpSync('packages/pulsecord', base + 'src/userplugins/pulsecord', { recursive: true });
 cpSync('packages/focus', base + 'src/userplugins/pulsecordFocus', { recursive: true });
+cpSync('packages/voicekeeper', base + 'src/plugins/bypassvoc', { recursive: true });
 cpSync('packages/pulsecord/nativeBrand.ts', base + 'src/main/pulsecordBrand.ts');
 cpSync('packages/installer/core.mjs', base + 'src/main/pulsecordUpdateCore.mjs');
 cpSync('packages/updates/protocol.mjs', base + 'src/main/pulsecordUpdateProtocol.mjs');

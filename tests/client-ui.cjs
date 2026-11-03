@@ -31,6 +31,7 @@ app.whenReady().then(async () => {
             } };
             const mocks = {
                 './style.css': {}, './brand': brand, './startup': startup, './branding': branding,
+                './voicekeeper-button': { VoiceKeeperButton: () => null, VoiceKeeperIcon: () => null },
                 './updates': { startUpdates: () => {}, stopUpdates: () => {}, UpdatesTab: () => null },
                 './inbox-store': { subscribeInbox: () => () => {}, getInboxMessages: () => [{id:'welcome',timestamp:1700000000000,text:'Bienvenue sur PulseCord. Retrouvez ici les annonces et les mises à jour officielles de votre client.',read:true}], getInboxUnread: () => 1, isInboxOpen: () => true, setInboxOpen: () => {}, loadInbox: async () => {}, stopInboxStore: () => {}, addInboxUpdate: () => {} },
                 '@api/PluginManager': {isPluginEnabled: () => pinsEnabled},

@@ -1,5 +1,6 @@
 # PulseCord
 
+- Bouton VoiceKeeper avec icône « interdit » à gauche du micro : activation persistante, état jaune, animation courte et annulation des reconnexions à la désactivation.
 - Correction du démarrage du renderer : les annonces attendent que Discord ait initialisé React avant de l’utiliser. L’erreur « reading memo » ne bloque plus le chargement de PulseCord.
 - Mise à jour intégrée : vérification du build activé avant fermeture, relancement explicite de l’exécutable Discord sans anciens arguments et affichage du build réellement chargé. Un redémarrage incomplet n’est plus présenté comme un client à jour.
 - Ajout d’un point d’insertion dédié aux paramètres utilisateur pour conserver la section PulseCord lorsque le constructeur partagé des menus Discord change, sans dupliquer ses rubriques.

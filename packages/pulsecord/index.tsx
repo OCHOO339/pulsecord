@@ -15,6 +15,7 @@ import { handleInboxNavigation, OfficialDmRow, openOfficialInbox, startOfficialI
 import { addInboxUpdate } from "./inbox-store";
 import { startHomeNavigation, stopHomeNavigation } from "./home-navigation";
 import { wrapDmSection, wrapDmSectionHeight } from "./dm-section";
+import { VoiceKeeperButton, VoiceKeeperIcon } from "./voicekeeper-button";
 
 export function PulseCordIcon({ width = 20, height = 20 }: IconProps) {
     return <img src={brand.logo} width={width} height={height} alt="" />;
@@ -74,6 +75,8 @@ const entries = [
 export default definePlugin({
     name: "PulseCord", description: "PulseCord identity, local appearance and settings.",
     authors: [Devs.PulseCord], required: true, settings,
+    dependencies: ["UserAreaAPI"],
+    userAreaButton: { icon: VoiceKeeperIcon, render: VoiceKeeperButton, priority: 10000 },
     patches: [{
         find: '"dm-quick-launcher"===',
         group: true,
