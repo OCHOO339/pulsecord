@@ -1,0 +1,56 @@
+PULSECORD — LICENCE ET MENTIONS LÉGALES
+Notice du 4 novembre 2026
+
+1. IDENTITÉ DU PROJET
+
+PulseCord est une modification indépendante du client Discord, maintenue dans le projet OCHOO339/pulsecord. Les développements propres à PulseCord sont identifiés dans ses sources et son historique de modifications.
+
+Copyright © 2026 les contributeurs PulseCord, pour leurs contributions respectives. Les auteurs des composants préexistants conservent leurs droits sur leurs contributions.
+
+Dépôt officiel : https://github.com/OCHOO339/pulsecord
+Versions et sources correspondantes : https://github.com/OCHOO339/pulsecord/releases
+
+2. LICENCE DU LOGICIEL
+
+L’ensemble distribué est placé sous la GNU General Public License, version 3 (GNU GPLv3). Le texte intégral, reproduit après cette notice et dans le fichier LICENSE, définit les autorisations et obligations applicables.
+
+Les fichiers portant la mention SPDX GPL-3.0-or-later autorisent également leur utilisation sous une version ultérieure de la GPL, dans les conditions de cette mention. Cette faculté ne modifie pas la licence des composants portant une autre mention, notamment le code d’installateur marqué GPL-3.0.
+
+Cette notice présente la licence de PulseCord ; elle ne remplace ni ne modifie la GNU GPL et n’impose aucune restriction supplémentaire aux droits qu’elle accorde. L’exécution d’une copie du programme ne nécessite pas l’acceptation d’un contrat supplémentaire.
+
+3. UTILISATION, MODIFICATION ET PARTAGE
+
+Vous pouvez utiliser le logiciel, étudier ses sources, le modifier et redistribuer des copies, gratuitement ou contre rémunération, dans les conditions de la GPLv3.
+
+En cas de redistribution, conservez les mentions de copyright, les informations de licence et les exclusions de garantie applicables. Identifiez vos modifications et leur date. Respectez la licence applicable à l’ensemble de l’œuvre dérivée et fournissez aux destinataires un exemplaire de la GPL.
+
+Si vous distribuez un binaire, rendez son code source correspondant complet accessible selon l’une des modalités de l’article 6 de la GPLv3. Cela comprend les modifications et les éléments nécessaires à la construction de cette version. Les versions officielles PulseCord fournissent une archive de sources avec leurs fichiers de publication.
+
+4. COMPOSANTS ET ATTRIBUTIONS
+
+PulseCord repose sur Equicord et Vencord. Les mentions des contributeurs Equicord, de Vendicated et des contributeurs Vencord sont conservées dans les sources et dans NOTICE.md. Des éléments de l’installateur dérivent de Vencord Installer ; leur provenance et leur licence sont également conservées.
+
+Electron, React, les autres dépendances et la police Cause conservent leurs licences et mentions respectives. Les documents de licence fournis avec les composants et les fichiers de mentions légales font partie de la distribution.
+
+5. NOMS, LOGOS ET INDÉPENDANCE
+
+Les noms, logos, illustrations et marques restent soumis aux droits de leurs titulaires respectifs. La licence du code ne constitue pas une autorisation générale d’utiliser une marque, ni une attestation de propriété sur les illustrations fournies au projet.
+
+PulseCord n’est ni édité ni approuvé par Discord, Equicord ou Vencord. La redistribution d’une version modifiée ne doit pas présenter cette version comme une publication officielle d’un autre projet.
+
+6. ABSENCE DE GARANTIE
+
+Dans les limites permises par le droit applicable, le logiciel est fourni sans garantie, conformément aux articles 15 et 16 de la GPLv3. Aucune garantie particulière de compatibilité, de disponibilité ou de fonctionnement continu avec Discord n’est accordée par cette notice. Les droits impératifs applicables restent réservés.
+
+7. TEXTE DE RÉFÉRENCE ET SOURCES
+
+En cas de différence entre ce résumé français et la GNU GPLv3, référez-vous au texte intégral de la licence. Les licences propres aux composants tiers continuent de s’appliquer à leurs composants respectifs.
+
+Licence intégrale : LICENSE
+Attributions détaillées : NOTICE.md
+Révisions des composants amont : upstream.lock.json
+Signalement d’un problème : https://github.com/OCHOO339/pulsecord/issues
+
+============================================================
+TEXTE INTÉGRAL DE LA GNU GENERAL PUBLIC LICENSE — VERSION 3
+============================================================

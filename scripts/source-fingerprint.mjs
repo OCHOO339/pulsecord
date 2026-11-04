@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync } from 'node:fs';
 export function sourceFingerprint() {
-    const names = ['brand.json', 'updates.json', 'upstream.lock.json', 'package.json', 'pnpm-lock.yaml', 'pulse.png', 'assets/pulsecord-inbox-banner.png'];
+    const names = ['brand.json', 'updates.json', 'upstream.lock.json', 'package.json', 'pnpm-lock.yaml', 'LICENSE', 'NOTICE.md', 'pulse.png', 'assets/pulsecord-inbox-banner.png'];
     function visit(dir) {
         for (const entry of readdirSync(dir, { withFileTypes: true })) {
             const file = `${dir}/${entry.name}`;

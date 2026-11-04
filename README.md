@@ -37,6 +37,6 @@ Le [modèle GitHub Actions](docs/github-actions-release.yml) doit être placé d
 
 L’installateur propose la réparation et la désinstallation de PulseCord. Il refuse de remplacer une sauvegarde ou un chargeur dont il ne peut pas vérifier l’origine. Pour démarrer sans charger le mod, lancer Discord avec `--vanilla`.
 
-PulseCord est indépendant de Discord. Les plugins tiers s’exécutent comme du code de confiance dans le client. Le projet est distribué sous [GPL-3.0-or-later](LICENSE) ; les crédits et licences amont sont dans [NOTICE.md](NOTICE.md). Fournir les sources correspondantes avec toute distribution du binaire.
+PulseCord est indépendant de Discord. Les plugins tiers s’exécutent comme du code de confiance dans le client. L’ensemble est distribué sous [GNU GPLv3](LICENSE) ; les fichiers marqués GPL-3.0-or-later conservent leur autorisation de versions ultérieures. La [notice de licence PulseCord](packages/installer/license-notice.txt) présente les droits, la redistribution et les garanties. Les crédits et licences amont sont dans [NOTICE.md](NOTICE.md). Fournir les sources correspondantes avec toute distribution du binaire.
 
 Documentation : [architecture](docs/ARCHITECTURE.md), [développement](docs/DEVELOPMENT.md), [validation](docs/VALIDATION.md), [branding](docs/BRANDING.md), [mises à jour](docs/UPDATES.md).

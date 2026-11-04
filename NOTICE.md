@@ -10,7 +10,9 @@ PulseCord is an independent source overlay on Equicord, itself a fork of Vencord
 - Nightcord was studied as a product/reference only. No Nightcord code or visual assets were copied.
 - PulseCord logo: original artwork supplied by the user in pulse.png, copied without redrawing. Code licensing does not assign ownership of the user's artwork to upstream projects.
 
-When distributing binaries, provide the complete corresponding source, exact upstream revisions, modifications, build scripts and licence text. Do not distribute a binary alone without arranging GPL-compliant source availability. The local Git repository and pinned source archives can be used to assemble that source release. No public repository or publisher identity has yet been configured.
+When distributing binaries, provide the complete corresponding source, exact upstream revisions, modifications, build scripts and licence text. Official releases and their corresponding source archives are published at https://github.com/OCHOO339/pulsecord/releases. The maintained source repository is https://github.com/OCHOO339/pulsecord. The complete distribution is conveyed under GPL version 3; individual GPL-3.0-or-later notices retain their stated permissions for those files.
+
+PulseCord's French licence notice is available in packages/installer/license-notice.txt. It accompanies the unchanged GNU GPLv3 text in LICENSE and does not add restrictions to the permissions granted by that licence.
 # Police Cause
 
 La police Cause est distribuée avec PulseCord sous SIL Open Font License 1.1. Les fichiers officiels proviennent de Google Fonts ; la licence et les mentions d'origine sont conservées dans `assets/fonts/OFL.txt` et dans les ressources de l'installateur.

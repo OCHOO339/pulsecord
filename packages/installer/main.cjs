@@ -21,7 +21,14 @@ app.whenReady().then(async () => {
     window.on('close', event => { if (busy) event.preventDefault(); });
     ipcMain.handle('license', async event => {
         check(event);
-        return require('node:fs/promises').readFile(app.isPackaged ? path.join(app.getAppPath(), 'LICENSE') : path.resolve(__dirname, '../../LICENSE'), 'utf8');
+        const fs = require('node:fs/promises');
+        const root = app.isPackaged ? app.getAppPath() : path.resolve(__dirname, '../..');
+        const [notice, license, credits] = await Promise.all([
+            fs.readFile(path.join(__dirname, 'license-notice.txt'), 'utf8'),
+            fs.readFile(path.join(root, 'LICENSE'), 'utf8'),
+            fs.readFile(path.join(root, 'NOTICE.md'), 'utf8')
+        ]);
+        return `${notice}\n\n${license}\n\n============================================================\nATTRIBUTIONS ET LICENCES DES COMPOSANTS\n============================================================\n\n${credits}`;
     });
     ipcMain.handle('window-control', (event, action) => {
         check(event);
@@ -78,6 +85,7 @@ app.whenReady().then(async () => {
             if (result.bridge !== 'function' || !result.nodeUnavailable) throw Error('Renderer isolation check failed');
             const license = await window.webContents.executeJavaScript('window.pulsecord.license()');
             if (!license.includes('GNU GENERAL PUBLIC LICENSE')) throw Error('License could not be loaded');
+            if (!license.includes('PULSECORD — LICENCE ET MENTIONS LÉGALES') || !license.includes('ATTRIBUTIONS ET LICENCES DES COMPOSANTS') || !license.includes('Vendicated')) throw Error('PulseCord notice or upstream credits are missing');
             result.licenseLoaded = true;
             result.causeFontLoaded = await window.webContents.executeJavaScript('document.fonts.load("400 13px Cause").then(fonts => fonts.length > 0)');
             if (!result.causeFontLoaded) throw Error('Bundled Cause font could not be loaded');

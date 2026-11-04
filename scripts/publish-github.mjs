@@ -45,7 +45,7 @@ if (!repository.permissions?.push) throw Error('This GitHub account cannot publi
 const branches = api(`repos/${repo}/branches`);
 if (!branches.length) {
     await mkdir('.cache/publisher', { recursive: true });
-    const readme = '# PulseCord\n\nPulseCord is an independent Discord modification based on Equicord and Vencord.\n\nDownload the installer and the complete corresponding source from [Releases](https://github.com/OCHOO339/pulsecord/releases/latest).\n\nThe client verifies official update packages with the embedded Ed25519 public key.\n\nGPL-3.0-or-later. Original author credits and licenses are included in the source archive.\n';
+    const readme = '# PulseCord\n\nPulseCord is an independent Discord modification based on Equicord and Vencord.\n\nDownload the installer and the complete corresponding source from [Releases](https://github.com/OCHOO339/pulsecord/releases/latest).\n\nThe client verifies official update packages with the embedded Ed25519 public key.\n\nThe combined distribution is licensed under GNU GPLv3. Individual GPL-3.0-or-later notices retain their permissions. Original author credits and licenses are included in the source archive.\n';
     await writeFile('.cache/publisher/initial-readme.json', JSON.stringify({ message: 'Initialize PulseCord releases', content: Buffer.from(readme).toString('base64'), branch: repository.default_branch }));
     api(`repos/${repo}/contents/README.md`, ['--method', 'PUT', '--input', '.cache/publisher/initial-readme.json']);
 }

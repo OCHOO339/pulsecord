@@ -1,5 +1,6 @@
 # PulseCord
 
+- Notice de licence PulseCord en français dans l’installateur, accompagnée du texte GPLv3 intégral, des attributions et des liens vers les sources officielles.
 - Nettoyage automatique du cache web temporaire à chaque lancement de Discord, désactivable dans Performance, sans effacer la connexion, les réglages ou les traductions locales.
 - Traduction automatique des descriptions, réglages et textes d’interface des plugins selon la langue de Discord, avec cache local et libellés français courants intégrés.
 - Logo des messages privés réduit et centré dans un bouton arrondi, avec accent jaune au survol et au clavier.

@@ -4,7 +4,7 @@
   "version": "0.4.0",
   "description": "PulseCord local Discord mod installer",
   "author": "PulseCord contributors",
-  "license": "GPL-3.0-or-later",
+  "license": "GPL-3.0-only",
   "packageManager": "pnpm@12.15.0",
   "scripts": {
     "prepare:fork": "node scripts/prepare.mjs",

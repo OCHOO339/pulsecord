@@ -6,7 +6,7 @@ await copyFile('pulse.png', target + '/assets/pulsecord-logo.png');
 let html = await readFile('packages/installer/index.html', 'utf8');
 html = html.replace('<script src="wizard.js">', '<script src="preview-bridge.js"></script><script src="wizard.js">');
 await writeFile(target + '/installer.html', html);
-const license = await readFile('LICENSE', 'utf8');
+const license = (await Promise.all(['packages/installer/license-notice.txt', 'LICENSE', 'NOTICE.md'].map(file => readFile(file, 'utf8')))).join('\n\n');
 await writeFile(target + '/preview-bridge.js', `
 let progressListener = () => {};
 window.pulsecord = {
