@@ -16,6 +16,8 @@ import { addInboxUpdate } from "./inbox-store";
 import { startHomeNavigation, stopHomeNavigation } from "./home-navigation";
 import { wrapDmSection, wrapDmSectionHeight } from "./dm-section";
 import { VoiceKeeperButton, VoiceKeeperIcon } from "./voicekeeper-button";
+import { SettingsBanner } from "./settings-banner";
+import { setBackgroundEconomy } from "./performance";
 
 export function PulseCordIcon({ width = 20, height = 20 }: IconProps) {
     return <img src={brand.logo} width={width} height={height} alt="" />;
@@ -29,6 +31,7 @@ const settings = definePluginSettings({
     preset: { type: OptionType.SELECT, description: "Local colour preset", options: Object.keys(presets).map(value => ({ label: value, value, default: value === "Midnight" })), onChange: apply },
     reduceMotion: { type: OptionType.BOOLEAN, description: "Disable costly animations", default: false, onChange: apply },
     clearCacheOnStartup: { type: OptionType.BOOLEAN, description: "Clear Discord's temporary web cache at startup", default: true },
+    backgroundEconomy: { type: OptionType.BOOLEAN, description: "Pause interface animations while Discord is hidden", default: true, onChange: apply },
     startupAnimation: { type: OptionType.BOOLEAN, description: "Show the PulseCord logo when Discord opens", default: true, onChange: apply },
     usePreset: { type: OptionType.BOOLEAN, description: "Apply PulseCord appearance", default: true, onChange: apply },
     updateNotifications: { type: OptionType.BOOLEAN, description: "Show PulseCord OFFICIAL update notifications", default: true },
@@ -36,6 +39,7 @@ const settings = definePluginSettings({
 });
 let appearance: HTMLStyleElement | undefined;
 function apply() {
+    setBackgroundEconomy(settings.store.backgroundEconomy);
     if (settings.store.reduceMotion || !settings.store.startupAnimation) stopStartup();
     if (!appearance) return;
     const colors = presets[settings.store.preset as keyof typeof presets] || presets.Midnight;
@@ -60,9 +64,11 @@ const Appearance = ErrorBoundary.wrap(() => {
         <button onClick={() => { settings.store.usePreset = false; settings.store.preset = "Midnight"; }}>Reset appearance</button></section>;
 }, { noop: false });
 const Performance = ErrorBoundary.wrap(() => {
-    const state = settings.use(["reduceMotion", "clearCacheOnStartup"]);
+    const state = settings.use(["reduceMotion", "clearCacheOnStartup", "backgroundEconomy"]);
     return <section className="pulsecord"><h1>Performance</h1><label><input type="checkbox" checked={state.reduceMotion} onChange={e => settings.store.reduceMotion = e.target.checked} /> Reduce animations and transitions</label>
         <label><input type="checkbox" checked={state.clearCacheOnStartup} onChange={e => settings.store.clearCacheOnStartup = e.target.checked} /> Clear temporary web cache at every launch</label>
+        <label><input type="checkbox" checked={state.backgroundEconomy} onChange={e => settings.store.backgroundEconomy = e.target.checked} /> Pause interface animations while Discord is hidden</label>
+        <p>Voice, calls and screen sharing keep working. Animations resume when you return to Discord.</p>
         <p>Applies from the next launch. This frees disk space; the first load may be slower. Your login, settings and cached translations are kept.</p>
         <h2>Diagnose a problem</h2><p>Close Discord, then launch it with <code>--vanilla</code>. This bypasses the mod without deleting your settings. Re-enable plugins individually after restarting normally.</p>
         <p>Patch compatibility remains dependent on the installed Discord build. A successful compilation is not a runtime compatibility check.</p></section>;
@@ -74,7 +80,7 @@ const entries = [
     { key: "pulsecord_performance", title: "Performance", Component: Performance },
     { key: "pulsecord_updates", title: "Updates", Component: UpdatesTab },
     { key: "pulsecord_about", title: "About", Component: About }
-].map(entry => ({ ...entry, Icon: MainSettingsIcon }));
+].map(entry => ({ ...entry, Component: () => <><SettingsBanner /><entry.Component /></>, Icon: MainSettingsIcon }));
 export default definePlugin({
     name: "PulseCord", description: "PulseCord identity, local appearance and settings.",
     authors: [Devs.PulseCord], required: true, settings,
@@ -93,5 +99,5 @@ export default definePlugin({
     renderOfficialDm: () => <OfficialDmRow />,
     flux: { CHANNEL_SELECT: handleInboxNavigation, GUILD_SELECT: handleInboxNavigation },
     start() { SettingsPlugin.customEntries.push(...entries); appearance = document.createElement("style"); document.head.append(appearance); apply(); brandFavicons(brand.logo); showStartup(brand.splashLogo, settings.store.startupAnimation && !settings.store.reduceMotion); startOfficialInbox(); startHomeNavigation(); startUpdates(id => { if (!settings.store.updateNotifications || settings.store.lastNotifiedUpdate === id) return false; settings.store.lastNotifiedUpdate = id; return true; }, next => { if (next.nextBuild) addInboxUpdate(next.nextBuild, next.changelog); }, openOfficialInbox); },
-    stop() { stopHomeNavigation(); stopOfficialInbox(); stopUpdates(); stopStartup(); restoreBrandFavicons(); for (const entry of entries) { const i = SettingsPlugin.customEntries.indexOf(entry); if (i >= 0) SettingsPlugin.customEntries.splice(i, 1); } appearance?.remove(); appearance = undefined; }
+    stop() { setBackgroundEconomy(false); stopHomeNavigation(); stopOfficialInbox(); stopUpdates(); stopStartup(); restoreBrandFavicons(); for (const entry of entries) { const i = SettingsPlugin.customEntries.indexOf(entry); if (i >= 0) SettingsPlugin.customEntries.splice(i, 1); } appearance?.remove(); appearance = undefined; }
 });

@@ -8,6 +8,10 @@ Télécharger **[PulseCord.Installer.exe dans la dernière release](https://gith
 
 Les mises à jour suivantes sont disponibles dans **PulseCord → Updates**. Le client vérifie la signature Ed25519 et l’intégrité du paquet avant installation, puis redémarre Discord après votre clic. La conversation locale PulseCord OFFICIAL est située sous « Messages privés » ; il ne s’agit pas d’un compte bot distant.
 
+## Lanceur et sauvegardes
+
+Le raccourci **PulseCord** du Bureau lance le client avec réparation après les mises à jour Discord. Dans les paramètres, **Sauvegarde et restauration** enregistre la configuration dans `Documents/PulseCord Backups`, et **Performance** propose le mode économie en arrière-plan. La bannière Pulse est affichée entière dans les paramètres. [Fonctionnement et limites](docs/launcher-backups-performance.md).
+
 ## Compiler
 
 Prérequis : Windows pour produire l’installateur Windows, Git, Node.js 24.19 et Corepack. Depuis la racine du dépôt avec un accès réseau :

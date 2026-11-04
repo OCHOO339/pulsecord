@@ -33,6 +33,9 @@ function patch(file, changes) {
     writeFileSync(base + file, text);
 }
 patch('src/plugins/_core/settings.tsx', [
+    ['import { BackupRestoreIcon,', 'import { BackupsTab as PulseBackupsTab } from "@pulsecord/backups";\nimport { BackupRestoreIcon,'],
+    ['Component: BackupAndRestoreTab,', 'Component: PulseBackupsTab,'],
+    ['title: "Backup & Restore",', 'title: "Sauvegarde et restauration",'],
     ['    patches: [', `    patches: [
         {
             // Insert at the user-settings root as well as the shared layout
@@ -108,6 +111,10 @@ for (const component of ['TextSetting', 'NumberSetting']) patch(`src/components/
     [component === 'TextSetting' ? 'placeholder={setting.placeholder ?? "Enter a value"}' : 'placeholder={setting.placeholder ?? "Enter a number"}', component === 'TextSetting' ? 'placeholder={translateUi(setting.placeholder ?? "Enter a value")}' : 'placeholder={translateUi(setting.placeholder ?? "Enter a number")}']
 ]);
 preparePluginLocalization(base);
+patch('src/components/settings/tabs/BaseTab.tsx', [
+    ['import ErrorBoundary from "@components/ErrorBoundary";', 'import ErrorBoundary from "@components/ErrorBoundary";\nimport { SettingsBanner } from "@pulsecord/settings-banner";'],
+    ['<section className="vc-settings-tab">{children}</section>', '<section className="vc-settings-tab"><SettingsBanner />{children}</section>']
+]);
 patch('src/main/utils/constants.ts', [['"EquicordData"', '"PulseCordData"'], ['"Equicord", suffix', '"PulseCord", suffix']]);
 patch('src/main/patcher.ts', [
     ['import { onceDefined } from "@shared/onceDefined";', 'import { onceDefined } from "@shared/onceDefined";\nimport { PulseWindow, PulseTray, brandDock } from "./pulsecordBrand";\nimport { installStartupCacheCleanup } from "./pulsecordStartupCache";'],
@@ -118,7 +125,7 @@ patch('src/main/patcher.ts', [
     ['    if (!IS_VESKTOP && !IS_EQUIBOP) {\n        try {\n            require("./hostUpdateHook").installHostUpdateHook();\n        } catch (err) {\n            console.error("[Equicord] Failed to install host update hook", err);\n        }\n    }', '']
 ]);
 patch('src/utils/constants.ts', [['export const Devs = /* #__PURE__*/ Object.freeze({', 'export const Devs = /* #__PURE__*/ Object.freeze({\n    PulseCord: { name: "PulseCord contributors", id: 0n, badge: false },']]);
-patch('tsconfig.json', [['"paths": {', '"paths": {\n            "@pulsecord": ["./src/userplugins/pulsecord/index.tsx"],\n            "@pulsecord/brand": ["./src/userplugins/pulsecord/brand.ts"],\n            "@pulsecord/localization": ["./src/userplugins/pulsecord/localization.tsx"],\n            "@pulsecord/branding": ["./src/userplugins/pulsecord/branding.ts"],\n            "@pulsecord/update-core": ["./src/main/pulsecordUpdateCore.mjs"],\n            "@pulsecord/update-protocol": ["./src/main/pulsecordUpdateProtocol.mjs"],\n            "electron": ["./node_modules/standalone-electron-types/electron.d.ts"],']]);
+patch('tsconfig.json', [['"paths": {', '"paths": {\n            "@pulsecord": ["./src/userplugins/pulsecord/index.tsx"],\n            "@pulsecord/brand": ["./src/userplugins/pulsecord/brand.ts"],\n            "@pulsecord/localization": ["./src/userplugins/pulsecord/localization.tsx"],\n            "@pulsecord/backups": ["./src/userplugins/pulsecord/backups.tsx"],\n            "@pulsecord/settings-banner": ["./src/userplugins/pulsecord/settings-banner.tsx"],\n            "@pulsecord/backup-core": ["./src/main/pulsecordBackupCore.mjs"],\n            "@pulsecord/launcher-state": ["./src/main/pulsecordLauncherState.cjs"],\n            "@pulsecord/branding": ["./src/userplugins/pulsecord/branding.ts"],\n            "@pulsecord/update-core": ["./src/main/pulsecordUpdateCore.mjs"],\n            "@pulsecord/update-protocol": ["./src/main/pulsecordUpdateProtocol.mjs"],\n            "electron": ["./node_modules/standalone-electron-types/electron.d.ts"],']]);
 mkdirSync(base + 'src/userplugins', { recursive: true });
 cpSync('packages/pulsecord', base + 'src/userplugins/pulsecord', { recursive: true });
 cpSync('packages/focus', base + 'src/userplugins/pulsecordFocus', { recursive: true });
@@ -126,6 +133,8 @@ cpSync('packages/voicekeeper', base + 'src/plugins/bypassvoc', { recursive: true
 prepareCustomPluginLocalization(base);
 cpSync('packages/pulsecord/nativeBrand.ts', base + 'src/main/pulsecordBrand.ts');
 cpSync('packages/pulsecord/startup-cache.ts', base + 'src/main/pulsecordStartupCache.ts');
+cpSync('packages/backup/core.mjs', base + 'src/main/pulsecordBackupCore.mjs');
+cpSync('packages/installer/launcher-state.cjs', base + 'src/main/pulsecordLauncherState.cjs');
 cpSync('packages/installer/core.mjs', base + 'src/main/pulsecordUpdateCore.mjs');
 cpSync('packages/updates/protocol.mjs', base + 'src/main/pulsecordUpdateProtocol.mjs');
 const logo = `data:image/png;base64,${readFileSync('assets/pulsecord-avatar.png').toString('base64')}`;

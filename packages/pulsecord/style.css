@@ -1,5 +1,6 @@
 .pulsecord { color: var(--text-normal, #eee); font: 15px/1.6 var(--font-primary, system-ui); max-width: 900px; padding: 24px; background: #151515; border: 1px solid #303030; border-radius: 8px; }
 .pulsecord h1 { font-size: 24px; margin: 0 0 12px; color: #fafafa; }
+.pc-settings-banner{max-width:900px;margin:0 0 20px;background:#0d0c09;border-radius:8px;overflow:hidden}.pc-settings-banner img{display:block;width:100%;height:auto;max-height:180px;object-fit:contain}.pc-backup-status{overflow-wrap:anywhere}html[data-pc-background] #app-mount *{animation-play-state:paused!important;transition-duration:0s!important}
 .pulsecord h2 { font-size: 18px; margin-top: 28px; }
 .pulsecord p { margin: 12px 0 20px; color: #bdbdbd; }
 .pulsecord label { display: block; margin: 20px 0; }

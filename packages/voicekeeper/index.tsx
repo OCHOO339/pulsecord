@@ -54,6 +54,16 @@ function clearTimer() {
     if (rejoinTimer) clearTimeout(rejoinTimer);
     rejoinTimer = null;
 }
+function syncSafetyPoll() {
+    if (!desiredChannelId) {
+        if (pollTimer) clearInterval(pollTimer);
+        pollTimer = null;
+    } else if (!pollTimer) {
+        pollTimer = setInterval(() => {
+            if (desiredChannelId && !rejoinTimer && currentChannelId() !== desiredChannelId) scheduleRejoin("poll", 1500);
+        }, 5000);
+    }
+}
 
 function scheduleRejoin(reason: string, delay = settings.store.rejoinDelay) {
     if (!desiredChannelId || rejoinTimer) return;
@@ -75,6 +85,7 @@ function rejoin(reason: string) {
     if (!channel) {
         // Le salon a disparu : on abandonne la cible.
         desiredChannelId = null;
+        syncSafetyPoll();
         return;
     }
 
@@ -101,6 +112,7 @@ function onVoiceStateUpdates({ voiceStates }: { voiceStates: any[]; }) {
         if (!desiredChannelId || state.guildId !== desiredGuildId) {
             desiredChannelId = state.channelId;
             desiredGuildId = state.guildId;
+            syncSafetyPoll();
             attempts = 0;
             return;
         }
@@ -128,6 +140,7 @@ function onChannelSelect({ channelId, guildId }: { channelId?: string | null; gu
         desiredGuildId = guildId ?? null;
         attempts = 0;
         clearTimer();
+        syncSafetyPoll();
     }
 }
 
@@ -156,12 +169,7 @@ export default definePlugin({
 
         // Filet de sécurité : Discord laisse parfois une connexion zombie
         // sans émettre de VOICE_STATE_UPDATE.
-        pollTimer = setInterval(() => {
-            if (!desiredChannelId || rejoinTimer) return;
-            if (currentChannelId() !== desiredChannelId) {
-                scheduleRejoin("poll", 1500);
-            }
-        }, 5000);
+        syncSafetyPoll();
     },
 
     stop() {

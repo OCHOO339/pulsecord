@@ -9,7 +9,7 @@ app.whenReady().then(async () => {
         const { transform } = tooling('esbuild');
         const base = 'upstream/equicord/src/userplugins/pulsecord/';
         const code = {};
-        for (const file of ['index.tsx', 'brand.ts', 'startup.ts', 'branding.ts', 'inbox.tsx', 'inbox-host.ts', 'inbox-background.ts', 'home-navigation.ts', 'markdown.tsx', 'dm-section.tsx']) code[file] = (await transform(await fs.readFile(base + file, 'utf8'), { loader: file.endsWith('tsx') ? 'tsx' : 'ts', format: 'cjs' })).code;
+        for (const file of ['index.tsx', 'brand.ts', 'startup.ts', 'branding.ts', 'inbox.tsx', 'inbox-host.ts', 'inbox-background.ts', 'home-navigation.ts', 'markdown.tsx', 'dm-section.tsx', 'settings-banner.tsx', 'backups.tsx', 'performance.ts']) code[file] = (await transform(await fs.readFile(base + file, 'utf8'), { loader: file.endsWith('tsx') ? 'tsx' : 'ts', format: 'cjs' })).code;
         code.publicDmFixture = await fs.readFile('.cache/discord-public/dm-list-fixture.js', 'utf8').catch(() => '');
         const css = await fs.readFile(base + 'style.css', 'utf8');
         const window = new BrowserWindow({ show: false, width: 900, height: 600, webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false } });
@@ -24,8 +24,9 @@ app.whenReady().then(async () => {
             const React = { memo: component => component, isValidElement: value => value instanceof Node, useRef: () => ({current:null}), useEffect: () => {}, useSyncExternalStore: (_, get) => get(), createElement(type, props, ...children) {
                 props ||= {};
                 if (typeof type === 'function') { const node = type({ ...props, children }); if(node && props.key) node.key = props.key; return node; }
+                if (type === React.Fragment) { const node = document.createDocumentFragment(); for (const child of children.flat()) if (child !== null && child !== undefined && child !== false) node.append(child instanceof Node ? child : String(child)); return node; }
                 const node = document.createElement(type);
-                for (const [key, value] of Object.entries(props)) { if (key === 'onClick') node.addEventListener('click', value); else if (key === 'style') { for (const [property, setting] of Object.entries(value)) { if (property.startsWith('--')) node.style.setProperty(property, setting); else node.style[property] = setting; } } else if (value !== undefined && !['children','key','ref'].includes(key)) node.setAttribute(key === 'className' ? 'class' : key, String(value)); }
+                for (const [key, value] of Object.entries(props)) { if (key === 'onClick') node.addEventListener('click', value); else if (['disabled','checked'].includes(key)) node[key] = Boolean(value); else if (key === 'style') { for (const [property, setting] of Object.entries(value)) { if (property.startsWith('--')) node.style.setProperty(property, setting); else node.style[property] = setting; } } else if (value !== undefined && !['children','key','ref'].includes(key)) node.setAttribute(key === 'className' ? 'class' : key, String(value)); }
                 for (const child of children.flat()) if (child !== null && child !== undefined && child !== false) node.append(child instanceof Node ? child : String(child));
                 return node;
             } };
@@ -41,11 +42,16 @@ app.whenReady().then(async () => {
                 '@api/Settings': { definePluginSettings: () => ({ store: {}, use: () => ({}) }) },
                 '@components/ErrorBoundary': { __esModule: true, default: { wrap: component => component } },
                 '@components/Icons': { MainSettingsIcon: () => null },
+                '@components/settings/tabs/BaseTab': { openSettingsTabModal: () => {} },
+                '@components/settings/tabs/sync/BackupAndRestoreTab': { __esModule: true, default: () => null },
                 '@plugins/_core/settings': { __esModule: true, default: { customEntries: [] } },
                 '@utils/constants': { Devs: { PulseCord: { name: 'PulseCord contributors', id: 0n } } },
                 '@utils/types': { __esModule: true, default: plugin => plugin, OptionType: { BOOLEAN: 1, SELECT: 2 } },
                 '@webpack/common': { React, Parser: {parse(text,inline,options){if(!options.allowHeading || !options.allowList)throw Error('Announcement parser must enable headings and lists');return [text];}}, NavigationRouter: { transitionTo: route => routes.push(route) }, createRoot: container => ({render: node => container.replaceChildren(node), unmount: () => container.replaceChildren()}) }
             };
+            mocks['./settings-banner'] = load(code['settings-banner.tsx'], name => mocks[name]);
+            mocks['./performance'] = load(code['performance.ts'], name => mocks[name]);
+            mocks['@webpack/common'].useState = initial => [initial, () => {}];
             mocks['./markdown'] = load(code['markdown.tsx'], name => mocks[name]);
             mocks['./inbox-host'] = load(code['inbox-host.ts'], name => mocks[name]);
             const inbox = load(code['inbox.tsx'], name => { if (!(name in mocks)) throw Error('Unmocked inbox import: ' + name); return mocks[name]; });
@@ -122,6 +128,9 @@ app.whenReady().then(async () => {
                 const root = document.querySelector('#root'); root.replaceChildren(); root.style.cssText = 'padding:32px;display:flex;gap:24px;align-items:flex-start';
                 for (const size of [40,48]) { const clone = home.cloneNode(true); clone.style.cssText = 'display:block;position:relative;width:'+size+'px;height:'+size+'px'; clone.firstElementChild.style.width = size+'px'; clone.firstElementChild.style.height = size+'px'; root.append(clone); }
             };
+            window.showPulseSettingsPreview = () => {
+                const root = document.querySelector('#root'); root.replaceChildren(load(code['backups.tsx'], name => mocks[name]).BackupsTab()); root.style.cssText = 'padding:24px;height:auto;display:block';
+            };
             fixtures.remove();
             document.querySelector('#root').style.cssText = 'display:flex;padding:0;height:100vh';
             const outer = document.createElement('div'); outer.className = 'page__outer'; outer.style.cssText = 'display:flex;flex:1;min-width:0;min-height:0';
@@ -172,6 +181,10 @@ app.whenReady().then(async () => {
         await window.webContents.executeJavaScript('window.showPulseHomePreview()');
         await new Promise(resolve => setTimeout(resolve, 100));
         await fs.writeFile('dist/qa/pulsecord-home.png', (await window.webContents.capturePage()).toPNG());
+        await window.webContents.executeJavaScript('window.showPulseSettingsPreview(); Promise.all(Array.from(document.querySelectorAll(".pc-settings-banner img")).map(img => img.decode()))');
+        result.settingsBanner = await window.webContents.executeJavaScript('(() => { const image=document.querySelector(".pc-settings-banner img"),rect=image.getBoundingClientRect(); return image.naturalWidth>0 && rect.height<=180.01 && rect.right<=innerWidth && getComputedStyle(image).objectFit==="contain"; })()');
+        if (!result.settingsBanner) throw Error('Settings banner must fit without cropping or overflow');
+        await fs.writeFile('dist/qa/pulsecord-settings.png', (await window.webContents.capturePage()).toPNG());
         await fs.writeFile('dist/qa/client-ui.json', JSON.stringify(result, null, 2)); app.exit(0);
     } catch (error) { console.error(error); app.exit(1); }
 });

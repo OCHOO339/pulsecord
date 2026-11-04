@@ -44,6 +44,7 @@ async function check(notify: boolean) {
     } catch (error) { publish({ ...state, phase: "error", error: String(error) }); logger.warn("Update check failed", error); }
 }
 export function startUpdates(notify: (id: string) => boolean, available: (next: UpdateState) => void = () => {}, open = () => openSettingsTabModal(UpdatesTab)) {
+    stopUpdates();
     shouldNotify = notify;
     reportAvailable = available; openOfficial = open;
     if (!IS_DISCORD_DESKTOP || !state.configured) return;

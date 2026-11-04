@@ -11,7 +11,7 @@ const buttonCode = await compile('packages/pulsecord/voicekeeper-button.tsx');
 const animationContext = { module: { exports: {} } };
 vm.runInNewContext(await compile('packages/pulsecord/voicekeeper-animation.ts'), animationContext);
 
-function fixture() {
+function fixture(inVoice = true) {
     const subscriptions = new Map(), timeouts = new Map(), intervals = new Map(), selected = [];
     const config = { returnOnMove: true, rejoinDelay: 750, maxAttempts: 0 };
     const saved = { plugins: { VoiceKeeper: { enabled: false } } };
@@ -21,7 +21,7 @@ function fixture() {
     const animationHandle = { play: marker => played.push(marker), stopIfPlaying: marker => stopped.push(marker) };
     const common = {
         UserStore: { getCurrentUser: () => ({ id: 'self' }) },
-        VoiceStateStore: { getVoiceStateForUser: () => ({ guildId: 'guild', channelId: 'voice' }), getVoiceState: () => ({ channelId: 'elsewhere' }) },
+        VoiceStateStore: { getVoiceStateForUser: () => inVoice ? ({ guildId: 'guild', channelId: 'voice' }) : undefined, getVoiceState: () => ({ channelId: 'elsewhere' }) },
         ChannelStore: { getChannel: () => ({ guild_id: 'guild', name: 'Voice' }) },
         ChannelActions: { selectVoiceChannel: id => selected.push(id) },
         FluxDispatcher: { subscribe: (event, fn) => subscriptions.set(event, fn), unsubscribe: event => subscriptions.delete(event) },
@@ -92,6 +92,14 @@ test('native voice button toggles the real plugin, persists state, and cancels p
     assert.equal(f.subscriptions.size, 0);
     assert.equal(f.selected.length, 0);
     assert.equal(f.render().props['aria-checked'], false);
+});
+test('VoiceKeeper has no idle poll outside voice and releases it on manual leave', () => {
+    const f = fixture(false); f.render().props.onClick();
+    assert.equal(f.intervals.size, 0);
+    f.subscriptions.get('VOICE_STATE_UPDATES')({voiceStates:[{userId:'self',guildId:'guild',channelId:'voice'}]});
+    assert.equal(f.intervals.size, 1);
+    f.subscriptions.get('VOICE_CHANNEL_SELECT')({channelId:null,guildId:null});
+    assert.equal(f.intervals.size, 0); assert.equal(f.timeouts.size, 0);
 });
 
 test('failed activation leaves the native button off and creates no reconnect timers', () => {

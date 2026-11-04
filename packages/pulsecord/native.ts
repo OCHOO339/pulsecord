@@ -11,6 +11,8 @@ import { app } from "electron";
 import { unzipSync } from "fflate";
 import { promises as fs } from "original-fs";
 import { basename, join, resolve, sep } from "path";
+import { saveBundle } from "@pulsecord/launcher-state";
+export { backupConfiguration, restoreConfiguration, revealLastBackup } from "./maintenance-native";
 
 interface Release {
     version: string; bundleId: string; bundleUrl: string; sha256: string; size: number; changelog: string;
@@ -103,6 +105,13 @@ export async function applyUpdate(_event: Electron.IpcMainInvokeEvent): Promise<
         stage = await fs.mkdtemp(join(cache, "stage-"));
         for (const [name, data] of Object.entries(files)) await fs.writeFile(join(stage, name), data, { flag: "wx" });
         await activateUpdate(resources, stage);
+        if (process.platform === "win32" && process.env?.LOCALAPPDATA) {
+            const channel = basename(resolve(resources, "../.."));
+            if (["Discord", "DiscordPTB", "DiscordCanary", "DiscordDevelopment"].includes(channel)) {
+                try { await saveBundle(stage, join(process.env.LOCALAPPDATA, "PulseCord", "bundles", channel)); }
+                catch (error) { console.warn("[PulseCord] Could not refresh launcher recovery bundle", error); }
+            }
+        }
         if ((await getInstallation(resources)).current !== release.bundleId) throw Error("Le nouveau build n’a pas été activé. Discord ne sera pas redémarré.");
         // Discard inherited launch arguments, which can point at an older app
         // archive or start a Squirrel maintenance invocation instead of Discord.

@@ -1,17 +1,45 @@
 // SPDX-License-Identifier: GPL-3.0
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { isTrustedSender } = require('./trusted-sender.cjs');
 const { selectTargets, runOperations } = require('./operations.cjs');
 const lifecycle = require('./discord-process.cjs');
+const { launchDiscord, installLauncher } = require('./launcher.cjs');
+async function setupLauncher(channel = 'Discord', resources) {
+    const source = process.env.PORTABLE_EXECUTABLE_FILE;
+    if (!app.isPackaged || !source) throw Error('Utilisez PulseCord Installer.exe pour installer le lanceur.');
+    const result = await installLauncher({ source: process.execPath, runtimeDirectory: path.dirname(process.execPath), channel, destination: path.join(process.env.LOCALAPPDATA, 'PulseCord', 'Launcher'), desktop: app.getPath('desktop'), shell });
+    if (resources) {
+        const { getInstallation } = await import('./core.mjs');
+        const { saveBundle } = require('./launcher-state.cjs');
+        const state = await getInstallation(resources);
+        await saveBundle(path.join(resources, 'mycord-versions', state.current), path.join(process.env.LOCALAPPDATA, 'PulseCord', 'bundles', channel));
+    }
+    return result;
+}
+async function setupForTargets(targets) {
+    if (!app.isPackaged || !process.env.PORTABLE_EXECUTABLE_FILE) return;
+    const selected = targets.find(target => target.name.startsWith('Discord ')) || targets[0];
+    const channel = selected.name.split(' ')[0];
+    if (['Discord', 'DiscordPTB', 'DiscordCanary', 'DiscordDevelopment'].includes(channel)) await setupLauncher(channel, selected.resources);
+}
 let window;
 let busy = false;
 let candidates = [];
 const smoke = process.argv.includes('--smoke-test');
-if (smoke) app.disableHardwareAcceleration();
+const headless = process.argv.includes('--launch') || process.argv.includes('--setup-launcher') || (path.basename(process.execPath) === 'PulseCord Launcher.exe' && !process.argv.includes('--installer'));
+if (smoke || headless) app.disableHardwareAcceleration();
 app.whenReady().then(async () => {
     const core = await import('./core.mjs');
+    if (headless) {
+        try {
+            if (process.argv.includes('--setup-launcher')) console.log(JSON.stringify(await setupLauncher()));
+            else console.log(JSON.stringify(await launchDiscord({ core, lifecycle, bundle: app.isPackaged ? path.join(process.resourcesPath, 'bundle') : path.resolve(__dirname, '../../dist/bundle'), loader: path.join(__dirname, 'loader.cjs'), localAppData: process.env.LOCALAPPDATA, channel: process.argv.find(arg => arg.startsWith('--channel='))?.slice(10) || 'Discord' })));
+            app.quit();
+        } catch (error) { dialog.showErrorBox('PulseCord Launcher', String(error.message || error)); app.exit(1); }
+        return;
+    }
     window = new BrowserWindow({ show: !smoke, width: 600, height: 440, minWidth: 540, minHeight: 420, frame: false, title: 'PulseCord Installer', icon: path.join(__dirname, 'assets/pulsecord-logo.png'), backgroundColor: '#0c0d10', webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true } });
     window.setMenuBarVisibility(false);
     const url = pathToFileURL(path.join(__dirname, 'index.html')).href;
@@ -51,11 +79,13 @@ app.whenReady().then(async () => {
             const targets = [candidates[index]];
             const answer = smoke ? { response: 0 } : await dialog.showMessageBox(window, { type: 'question', buttons: ['Annuler', 'Continuer'], defaultId: 0, cancelId: 0, message: `${action}: ${targets[0].name}`, detail: `Discord sera fermé automatiquement puis relancé à la fin.\n${targets[0].resources}` });
             if (answer.response !== 1) return 'Cancelled';
-            return await runOperations({ core, action, targets, lifecycle,
+            const result = await runOperations({ core, action, targets, lifecycle,
                 bundle: app.isPackaged ? path.join(process.resourcesPath, 'bundle') : path.resolve(__dirname, '../../dist/bundle'),
                 loader: path.join(__dirname, 'loader.cjs'),
                 progress: value => { if (!window.isDestroyed()) window.webContents.send('operation-progress', value); }
             });
+            if (result.ok && ['install', 'repair'].includes(action)) await setupForTargets(targets);
+            return result;
         }
         finally { busy = false; }
     });
@@ -71,11 +101,13 @@ app.whenReady().then(async () => {
                 detail: `Discord sera fermé automatiquement puis relancé à la fin.\n\n${targets.map(target => `${target.name}\n${target.resources}`).join('\n\n')}`
             });
             if (answer.response !== 1) return { cancelled: true };
-            return await runOperations({ core, action, targets, lifecycle,
+            const result = await runOperations({ core, action, targets, lifecycle,
                 bundle: app.isPackaged ? path.join(process.resourcesPath, 'bundle') : path.resolve(__dirname, '../../dist/bundle'),
                 loader: path.join(__dirname, 'loader.cjs'),
                 progress: value => { if (!window.isDestroyed()) window.webContents.send('operation-progress', value); }
             });
+            if (result.ok && ['install', 'repair'].includes(action)) await setupForTargets(targets);
+            return result;
         } finally { busy = false; }
     });
     await window.loadURL(url);
