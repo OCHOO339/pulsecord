@@ -67,17 +67,20 @@ export function brandingCss(logo: string, largeLogo = logo, fontCss = "") {
         }
         ${home} :is(svg,img) { opacity:0!important; }
         ${home}::before {
-            content:"";position:absolute;inset:0;background:#f8c332;
-            border-radius:30%;pointer-events:none;
+            content:"";position:absolute;inset:0;margin:auto;
+            width:100%;height:100%;max-width:40px;max-height:40px;
+            background:var(--background-surface-higher,var(--background-secondary,#232428));
+            border-radius:14px;pointer-events:none;
         }
         ${home}::after {
-            content:"";position:absolute;inset:0;margin:auto;width:64%;height:64%;
-            max-width:32px;max-height:32px;background:#211a08;
+            content:"";position:absolute;inset:0;margin:auto;width:60%;height:60%;
+            max-width:26px;max-height:26px;background:#f8c332;
             mask:${image} center/contain no-repeat;
             -webkit-mask:${image} center/contain no-repeat;
             pointer-events:none;
         }
-        ${home}:hover::before { background:#ffd04f!important; }
+        ${home}:is(:hover,:focus-visible)::before { background:#f8c332; }
+        ${home}:is(:hover,:focus-visible)::after { background:#211a08; }
         :is(${marks}) {
             background-image:${image}!important;
             background-repeat:no-repeat!important;

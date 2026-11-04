@@ -1,5 +1,6 @@
 # PulseCord
 
+- Logo des messages privés réduit et centré dans un bouton arrondi, avec accent jaune au survol et au clavier.
 - Bannière de la conversation affichée entièrement, avec ses proportions conservées et sans recadrage.
 - Fond doré Pulse flouté dans la conversation officielle, avec un voile sombre pour garder les messages lisibles.
 - Icône VoiceKeeper restaurée, y compris pendant le chargement des animations.

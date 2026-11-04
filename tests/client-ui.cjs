@@ -94,10 +94,10 @@ app.whenReady().then(async () => {
             primary.style.cssText = 'background:var(--control-primary-background-default);color:var(--control-primary-text-default)';
             fixtures.append(primary);
             const brandingChecks = {
-                dmButtonGold: getComputedStyle(home, '::before').backgroundColor === 'rgb(248, 195, 50)',
+                dmLogoGold: getComputedStyle(home, '::after').backgroundColor === 'rgb(248, 195, 50)',
                 dmOriginalHidden: getComputedStyle(home.querySelector('svg')).opacity === '0',
                 dmPulseMask: getComputedStyle(home, '::after').maskImage.includes(brand.brand.logo),
-                dmGeometryPreserved: home.getBoundingClientRect().width === 48 && home.firstElementChild.getBoundingClientRect().width === 48 && parseFloat(getComputedStyle(home, '::after').width) <= 32,
+                dmGeometryPreserved: home.getBoundingClientRect().width === 48 && home.firstElementChild.getBoundingClientRect().width === 48 && parseFloat(getComputedStyle(home, '::after').width) <= 26 && parseFloat(getComputedStyle(home, '::before').width) === 40,
                 dmClickPreserved: homeClicks === 1 && getComputedStyle(home, '::after').pointerEvents === 'none',
                 friendsLinkPreserved: getComputedStyle(friends.querySelector('svg')).opacity === '1' && getComputedStyle(friends, '::after').content === 'none',
                 modernHomeBranded: getComputedStyle(modernHome.firstElementChild,'::after').maskImage.includes(brand.brand.logo),
