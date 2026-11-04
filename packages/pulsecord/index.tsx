@@ -28,6 +28,7 @@ const presets = {
 const settings = definePluginSettings({
     preset: { type: OptionType.SELECT, description: "Local colour preset", options: Object.keys(presets).map(value => ({ label: value, value, default: value === "Midnight" })), onChange: apply },
     reduceMotion: { type: OptionType.BOOLEAN, description: "Disable costly animations", default: false, onChange: apply },
+    clearCacheOnStartup: { type: OptionType.BOOLEAN, description: "Clear Discord's temporary web cache at startup", default: true },
     startupAnimation: { type: OptionType.BOOLEAN, description: "Show the PulseCord logo when Discord opens", default: true, onChange: apply },
     usePreset: { type: OptionType.BOOLEAN, description: "Apply PulseCord appearance", default: true, onChange: apply },
     updateNotifications: { type: OptionType.BOOLEAN, description: "Show PulseCord OFFICIAL update notifications", default: true },
@@ -59,8 +60,10 @@ const Appearance = ErrorBoundary.wrap(() => {
         <button onClick={() => { settings.store.usePreset = false; settings.store.preset = "Midnight"; }}>Reset appearance</button></section>;
 }, { noop: false });
 const Performance = ErrorBoundary.wrap(() => {
-    const state = settings.use(["reduceMotion"]);
+    const state = settings.use(["reduceMotion", "clearCacheOnStartup"]);
     return <section className="pulsecord"><h1>Performance</h1><label><input type="checkbox" checked={state.reduceMotion} onChange={e => settings.store.reduceMotion = e.target.checked} /> Reduce animations and transitions</label>
+        <label><input type="checkbox" checked={state.clearCacheOnStartup} onChange={e => settings.store.clearCacheOnStartup = e.target.checked} /> Clear temporary web cache at every launch</label>
+        <p>Applies from the next launch. This frees disk space; the first load may be slower. Your login, settings and cached translations are kept.</p>
         <h2>Diagnose a problem</h2><p>Close Discord, then launch it with <code>--vanilla</code>. This bypasses the mod without deleting your settings. Re-enable plugins individually after restarting normally.</p>
         <p>Patch compatibility remains dependent on the installed Discord build. A successful compilation is not a runtime compatibility check.</p></section>;
 }, { noop: false });

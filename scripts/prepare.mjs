@@ -110,8 +110,8 @@ for (const component of ['TextSetting', 'NumberSetting']) patch(`src/components/
 preparePluginLocalization(base);
 patch('src/main/utils/constants.ts', [['"EquicordData"', '"PulseCordData"'], ['"Equicord", suffix', '"PulseCord", suffix']]);
 patch('src/main/patcher.ts', [
-    ['import { onceDefined } from "@shared/onceDefined";', 'import { onceDefined } from "@shared/onceDefined";\nimport { PulseWindow, PulseTray, brandDock } from "./pulsecordBrand";'],
-    ['    patchTrayMenu();', '    brandDock();\n    patchTrayMenu();'],
+    ['import { onceDefined } from "@shared/onceDefined";', 'import { onceDefined } from "@shared/onceDefined";\nimport { PulseWindow, PulseTray, brandDock } from "./pulsecordBrand";\nimport { installStartupCacheCleanup } from "./pulsecordStartupCache";'],
+    ['    patchTrayMenu();', '    brandDock();\n    installStartupCacheCleanup(settings.plugins?.PulseCord?.clearCacheOnStartup !== false);\n    patchTrayMenu();'],
     ['class BrowserWindow extends electron.BrowserWindow', 'class BrowserWindow extends PulseWindow'],
     ['        BrowserWindow\n    };', '        BrowserWindow,\n        Tray: PulseTray\n    };'],
     ['require("./persistAfterDiscordUpdates");', ''],
@@ -125,6 +125,7 @@ cpSync('packages/focus', base + 'src/userplugins/pulsecordFocus', { recursive: t
 cpSync('packages/voicekeeper', base + 'src/plugins/bypassvoc', { recursive: true });
 prepareCustomPluginLocalization(base);
 cpSync('packages/pulsecord/nativeBrand.ts', base + 'src/main/pulsecordBrand.ts');
+cpSync('packages/pulsecord/startup-cache.ts', base + 'src/main/pulsecordStartupCache.ts');
 cpSync('packages/installer/core.mjs', base + 'src/main/pulsecordUpdateCore.mjs');
 cpSync('packages/updates/protocol.mjs', base + 'src/main/pulsecordUpdateProtocol.mjs');
 const logo = `data:image/png;base64,${readFileSync('assets/pulsecord-avatar.png').toString('base64')}`;

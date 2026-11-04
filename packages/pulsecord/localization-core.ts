@@ -13,6 +13,7 @@ export function translationLanguage(locale: string) {
 export type Translator = (text: string, language: string) => Promise<string>;
 export class PluginTranslations {
     private values = new Map<string, string>();
+    private cachedCharacters = 0;
     private pending = new Set<string>();
     private failed = new Map<string, number>();
     private queue: Array<{ key: string; text: string; locale: string; }> = [];
@@ -22,7 +23,17 @@ export class PluginTranslations {
     constructor(private catalogs: Record<string, Record<string, string>>, private provider?: Translator, private persist?: (entries: Array<[string, string]>) => void) {}
     subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
     hydrate(entries: Array<[string, string]>) {
-        for (const [key, value] of entries.slice(-4000)) if (typeof key === "string" && typeof value === "string" && key.length < 5000 && value.length < 10000) this.values.set(key, value);
+        for (const [key, value] of entries.slice(-2000)) if (typeof key === "string" && typeof value === "string" && key.length < 5000 && value.length < 10000) this.store(key, value);
+    }
+    private store(key: string, value: string) {
+        const previous = this.values.get(key);
+        if (previous !== undefined) this.cachedCharacters -= key.length + previous.length;
+        this.values.set(key, value); this.cachedCharacters += key.length + value.length;
+        while (this.values.size > 2000 || this.cachedCharacters > 1_500_000) {
+            const oldest = this.values.keys().next().value!;
+            this.cachedCharacters -= oldest.length + this.values.get(oldest)!.length;
+            this.values.delete(oldest);
+        }
     }
     entries() {
         const result: Array<[string, string]> = []; let size = 0;
@@ -50,8 +61,7 @@ export class PluginTranslations {
             const item = this.queue.shift()!; this.active++;
             Promise.resolve().then(() => this.provider!(item.text, translationLanguage(item.locale))).then(value => {
                 if (!value.trim() || value.length > 10000) throw Error("Invalid translation");
-                this.values.set(item.key, value);
-                while (this.values.size > 4000) this.values.delete(this.values.keys().next().value!);
+                this.store(item.key, value);
                 this.persist?.([...this.values]);
                 this.revision++; for (const listener of this.listeners) listener();
             }).catch(() => { this.failed.set(item.key, Date.now()); if (this.failed.size > 4000) this.failed.delete(this.failed.keys().next().value!); }).finally(() => {

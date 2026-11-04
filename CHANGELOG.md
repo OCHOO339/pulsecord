@@ -1,5 +1,6 @@
 # PulseCord
 
+- Nettoyage automatique du cache web temporaire à chaque lancement de Discord, désactivable dans Performance, sans effacer la connexion, les réglages ou les traductions locales.
 - Traduction automatique des descriptions, réglages et textes d’interface des plugins selon la langue de Discord, avec cache local et libellés français courants intégrés.
 - Logo des messages privés réduit et centré dans un bouton arrondi, avec accent jaune au survol et au clavier.
 - Bannière de la conversation affichée entièrement, avec ses proportions conservées et sans recadrage.

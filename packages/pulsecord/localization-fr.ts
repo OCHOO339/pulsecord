@@ -25,5 +25,8 @@ export const french: Record<string, string> = {
     "VoiceKeeper": "VoiceKeeper",
     "Apply PulseCord appearance": "Appliquer l’apparence PulseCord", "Local colour preset": "Palette de couleurs locale",
     "Disable costly animations": "Réduire les animations", "Show the PulseCord logo when Discord opens": "Afficher le logo PulseCord à l’ouverture de Discord",
+    "Clear Discord's temporary web cache at startup": "Vider le cache web temporaire de Discord au démarrage",
+    "Clear temporary web cache at every launch": "Vider le cache web temporaire à chaque lancement",
+    "Applies from the next launch. This frees disk space; the first load may be slower. Your login, settings and cached translations are kept.": "S’applique au prochain lancement. Libère de l’espace disque ; le premier chargement peut être plus lent. La connexion, les réglages et les traductions en cache sont conservés.",
     "Show PulseCord OFFICIAL update notifications": "Afficher les notifications officielles de mise à jour PulseCord"
 };

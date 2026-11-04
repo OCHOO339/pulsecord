@@ -12,6 +12,13 @@ async function core() {
     vm.runInNewContext(source.code,context); return context.module.exports;
 }
 const tick = () => new Promise(resolve => setImmediate(resolve));
+test('translation cache evicts old entries under a total memory budget',async()=>{
+    const {PluginTranslations}=await core();const cache=new PluginTranslations({});
+    cache.hydrate(Array.from({length:2000},(_,i)=>[`fr\0Label ${i}`,'x'.repeat(2000)]));
+    assert.equal(cache.translate('Label 0','fr',false),'Label 0');
+    assert.equal(cache.translate('Label 1999','fr',false),'x'.repeat(2000));
+    assert.ok(cache.entries().reduce((total,[key,value])=>total+key.length+value.length,0)<=1_500_000);
+});
 test('all Discord locales normalize and map regional translation languages',async()=>{
     const api=await core(); assert.equal(api.discordLocales.length,32);
     for(const locale of api.discordLocales) assert.equal(api.normalizeLocale(locale),locale);
