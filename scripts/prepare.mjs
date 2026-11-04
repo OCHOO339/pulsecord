@@ -2,6 +2,7 @@
 import { readFileSync, writeFileSync, mkdirSync, cpSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
+import { restorePluginUi, preparePluginLocalization, prepareCustomPluginLocalization } from './localize-plugins.mjs';
 const lock = JSON.parse(readFileSync('upstream.lock.json', 'utf8'));
 const brand = JSON.parse(readFileSync('brand.json', 'utf8'));
 const updates = JSON.parse(readFileSync('updates.json', 'utf8'));
@@ -20,6 +21,7 @@ for (const [name, entry] of Object.entries(lock)) {
     if (sha !== entry.commit) throw Error(`${name}: unexpected revision ${sha}`);
 }
 const base = 'upstream/equicord/';
+restorePluginUi(base);
 function patch(file, changes) {
     // Always derive the small overlay from the pinned source, never mutate an arbitrary revision.
     const dir = resolve(base).replaceAll('\\', '/');
@@ -61,7 +63,10 @@ function notifyButtons() { buttonRevision++; for (const listener of buttonListen
     ['function UserAreaButtons({ props }: { props: UserAreaRenderProps; }) {', 'function UserAreaButtons({ props }: { props: UserAreaRenderProps; }) {\n    React.useSyncExternalStore(subscribeButtons, () => buttonRevision);']
 ]);
 patch('src/components/settings/tabs/plugins/PluginCard.tsx', [
-    ['import { PluginMeta } from "~plugins";', 'import { PluginMeta } from "~plugins";\nimport { brand } from "@pulsecord/brand";'],
+    ['import { PluginMeta } from "~plugins";', 'import { PluginMeta } from "~plugins";\nimport { brand } from "@pulsecord/brand";\nimport { translateUi, usePluginLocale } from "@pulsecord/localization";'],
+    ['    const settings = Settings.plugins[plugin.name];', '    usePluginLocale();\n    const settings = Settings.plugins[plugin.name];'],
+    ['description={plugin.description}', 'description={translateUi(plugin.description)}'],
+    ['tooltip={tooltip}', 'tooltip={translateUi(tooltip)}'],
     ['src: "https://equicord.org/assets/icons/equicord/modified.png"', 'src: brand.logo'],
     ['src: "https://equicord.org/assets/favicon.png"', 'src: brand.logo'],
     ['src: "https://equicord.org/assets/icons/vencord/icon-light.png"', 'src: brand.logo'],
@@ -71,11 +76,38 @@ patch('src/components/settings/tabs/plugins/PluginCard.tsx', [
     ['title: "Equicord Plugin"', 'title: "PulseCord Plugin"'], ['title: "Vencord Plugin"', 'title: "PulseCord Plugin"']
 ]);
 patch('src/components/settings/tabs/plugins/index.tsx', [
+    ['export default function PluginSettings() {', 'export default function PluginSettings() {\n    const localeRevision = usePluginLocale();'],
+    ['import { PluginCard } from "./PluginCard";', 'import { PluginCard } from "./PluginCard";\nimport { usePluginLocale, cachedUiTranslation } from "@pulsecord/localization";'],
+    ['plugin.description.toLowerCase().includes(search)', 'plugin.description.toLowerCase().includes(search) || cachedUiTranslation(plugin.description).toLowerCase().includes(search)'],
+    ['}, [searchValue, search]);', '}, [searchValue, search, localeRevision]);'],
     ['Developer version of Equicord', 'Developer version of PulseCord'],
     ['Web Browser version of Equicord', 'Web Browser version of PulseCord'],
     ['This plugin is required for Equicord to function.', 'This plugin is required for PulseCord to function.'],
     ['Show Equicord', 'PulseCord · Extended'], ['Show Vencord', 'PulseCord · Standard']
 ]);
+patch('src/components/settings/tabs/plugins/PluginModal.tsx', [
+    ['import { PluginMeta } from "~plugins";', 'import { PluginMeta } from "~plugins";\nimport { translateUi, usePluginLocale } from "@pulsecord/localization";'],
+    ['    const pluginSettings = useSettings', '    usePluginLocale();\n    const pluginSettings = useSettings'],
+    ['{plugin.description}', '{translateUi(plugin.description)}']
+]);
+patch('src/components/settings/tabs/plugins/components/Common.tsx', [
+    ['import { BaseText } from "@components/BaseText";', 'import { BaseText } from "@components/BaseText";\nimport { PluginText, usePluginLocale } from "@pulsecord/localization";'],
+    ['    return (\n        <Tag', '    usePluginLocale();\n    return (\n        <Tag'],
+    ['{name ?? wordsToTitle(wordsFromCamel(id))}', '{<PluginText text={name ?? wordsToTitle(wordsFromCamel(id))} />}'],
+    ['>{description}</BaseText>', '><PluginText text={description} /></BaseText>']
+]);
+patch('src/components/settings/tabs/plugins/components/SelectSetting.tsx', [
+    ['import { isSettingDisabled } from "@api/PluginManager";', 'import { isSettingDisabled } from "@api/PluginManager";\nimport { translateUi, usePluginLocale } from "@pulsecord/localization";'],
+    ['    const def = pluginSettings[id]', '    usePluginLocale();\n    const def = pluginSettings[id]'],
+    ['options={setting.options}', 'options={setting.options.map(option => ({ ...option, label: translateUi(option.label) }))}'],
+    ['placeholder={setting.placeholder ?? "Select an option"}', 'placeholder={translateUi(setting.placeholder ?? "Select an option")}']
+]);
+for (const component of ['TextSetting', 'NumberSetting']) patch(`src/components/settings/tabs/plugins/components/${component}.tsx`, [
+    ['import { isSettingDisabled } from "@api/PluginManager";', 'import { isSettingDisabled } from "@api/PluginManager";\nimport { translateUi, usePluginLocale } from "@pulsecord/localization";'],
+    ['    const [state, setState]', '    usePluginLocale();\n    const [state, setState]'],
+    [component === 'TextSetting' ? 'placeholder={setting.placeholder ?? "Enter a value"}' : 'placeholder={setting.placeholder ?? "Enter a number"}', component === 'TextSetting' ? 'placeholder={translateUi(setting.placeholder ?? "Enter a value")}' : 'placeholder={translateUi(setting.placeholder ?? "Enter a number")}']
+]);
+preparePluginLocalization(base);
 patch('src/main/utils/constants.ts', [['"EquicordData"', '"PulseCordData"'], ['"Equicord", suffix', '"PulseCord", suffix']]);
 patch('src/main/patcher.ts', [
     ['import { onceDefined } from "@shared/onceDefined";', 'import { onceDefined } from "@shared/onceDefined";\nimport { PulseWindow, PulseTray, brandDock } from "./pulsecordBrand";'],
@@ -86,11 +118,12 @@ patch('src/main/patcher.ts', [
     ['    if (!IS_VESKTOP && !IS_EQUIBOP) {\n        try {\n            require("./hostUpdateHook").installHostUpdateHook();\n        } catch (err) {\n            console.error("[Equicord] Failed to install host update hook", err);\n        }\n    }', '']
 ]);
 patch('src/utils/constants.ts', [['export const Devs = /* #__PURE__*/ Object.freeze({', 'export const Devs = /* #__PURE__*/ Object.freeze({\n    PulseCord: { name: "PulseCord contributors", id: 0n, badge: false },']]);
-patch('tsconfig.json', [['"paths": {', '"paths": {\n            "@pulsecord": ["./src/userplugins/pulsecord/index.tsx"],\n            "@pulsecord/brand": ["./src/userplugins/pulsecord/brand.ts"],\n            "@pulsecord/branding": ["./src/userplugins/pulsecord/branding.ts"],\n            "@pulsecord/update-core": ["./src/main/pulsecordUpdateCore.mjs"],\n            "@pulsecord/update-protocol": ["./src/main/pulsecordUpdateProtocol.mjs"],\n            "electron": ["./node_modules/standalone-electron-types/electron.d.ts"],']]);
+patch('tsconfig.json', [['"paths": {', '"paths": {\n            "@pulsecord": ["./src/userplugins/pulsecord/index.tsx"],\n            "@pulsecord/brand": ["./src/userplugins/pulsecord/brand.ts"],\n            "@pulsecord/localization": ["./src/userplugins/pulsecord/localization.tsx"],\n            "@pulsecord/branding": ["./src/userplugins/pulsecord/branding.ts"],\n            "@pulsecord/update-core": ["./src/main/pulsecordUpdateCore.mjs"],\n            "@pulsecord/update-protocol": ["./src/main/pulsecordUpdateProtocol.mjs"],\n            "electron": ["./node_modules/standalone-electron-types/electron.d.ts"],']]);
 mkdirSync(base + 'src/userplugins', { recursive: true });
 cpSync('packages/pulsecord', base + 'src/userplugins/pulsecord', { recursive: true });
 cpSync('packages/focus', base + 'src/userplugins/pulsecordFocus', { recursive: true });
 cpSync('packages/voicekeeper', base + 'src/plugins/bypassvoc', { recursive: true });
+prepareCustomPluginLocalization(base);
 cpSync('packages/pulsecord/nativeBrand.ts', base + 'src/main/pulsecordBrand.ts');
 cpSync('packages/installer/core.mjs', base + 'src/main/pulsecordUpdateCore.mjs');
 cpSync('packages/updates/protocol.mjs', base + 'src/main/pulsecordUpdateProtocol.mjs');

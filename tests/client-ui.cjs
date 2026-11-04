@@ -30,6 +30,7 @@ app.whenReady().then(async () => {
                 return node;
             } };
             const mocks = {
+                '@pulsecord/localization': { PluginText: ({text}) => document.createTextNode(text), translateUi: text => text },
                 './style.css': {}, './brand': brand, './startup': startup, './branding': branding,
                 './voicekeeper-button': { VoiceKeeperButton: () => null, VoiceKeeperIcon: () => null },
                 './inbox-background': load(code['inbox-background.ts'], () => {}),

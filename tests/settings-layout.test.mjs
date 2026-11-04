@@ -13,6 +13,7 @@ function settingsPlugin() {
     const context = {
         module: { exports: {} }, IS_UPDATER_DISABLED: true, IS_STANDALONE: false,
         require(name) {
+            if (name === '@pulsecord/localization') return { PluginText: Component, translateUi: text => text };
             if (name === '@api/Settings') return { definePluginSettings: () => ({ store: { settingsLocation: 'aboveNitro' } }) };
             if (name === '@utils/types') return { __esModule: true, default: plugin => plugin, OptionType: { SELECT: 1, BOOLEAN: 2 } };
             if (name === '@utils/constants') return { Devs: { Ven: {}, Megu: {} } };
