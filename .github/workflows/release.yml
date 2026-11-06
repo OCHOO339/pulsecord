@@ -30,12 +30,7 @@ jobs:
       - name: Prepare publisher key
         env:
           PULSECORD_UPDATE_KEY_PEM: ${{ secrets.PULSECORD_UPDATE_KEY_PEM }}
-        run: |
-          if ([string]::IsNullOrWhiteSpace($env:PULSECORD_UPDATE_KEY_PEM)) { throw 'Configure the PULSECORD_UPDATE_KEY_PEM repository secret first.' }
-          New-Item -ItemType Directory -Force .pulsecord-publisher | Out-Null
-          [IO.File]::WriteAllText((Join-Path $PWD '.pulsecord-publisher/private-key.pem'), $env:PULSECORD_UPDATE_KEY_PEM)
-          node scripts/setup-updates.mjs
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        run: node scripts/setup-updates.mjs
       - name: Prepare pinned fork
         run: |
           corepack enable
