@@ -85,6 +85,7 @@ app.whenReady().then(async () => {
             let homeClicks = 0; home.addEventListener('click', event => { event.preventDefault(); homeClicks++; }); home.click();
             const friends = document.createElement('a'); friends.href = '/channels/@me'; friends.innerHTML = '<svg width="24" height="24"><path d="M1 1h1v1z" /></svg>Amis'; fixtures.append(friends);
             const modernHome = document.createElement('div'); modernHome.dataset.guildsBarHome = 'true';
+            modernHome.style.cssText = 'width:56px;display:grid;place-items:center';
             modernHome.innerHTML = '<div role="button" aria-owns="guild-list-unread-dms" tabindex="0" style="width:40px;height:40px"><svg width="24" height="24"><path d="M0 0h1v1z" /></svg></div>';
             fixtures.append(modernHome);
             homeNavigation.startHomeNavigation();
@@ -107,7 +108,8 @@ app.whenReady().then(async () => {
                 dmGeometryPreserved: Math.abs(home.getBoundingClientRect().width - 48) < .01 && Math.abs(home.firstElementChild.getBoundingClientRect().width - 48) < .01 && Math.abs(parseFloat(getComputedStyle(home, '::after').width) - 38.4) < .02 && parseFloat(getComputedStyle(home, '::before').width) === 48,
                 dmClickPreserved: homeClicks === 1 && getComputedStyle(home, '::after').pointerEvents === 'none',
                 friendsLinkPreserved: getComputedStyle(friends.querySelector('svg')).opacity === '1' && getComputedStyle(friends, '::after').content === 'none',
-                modernHomeBranded: getComputedStyle(modernHome,'::after').maskImage.includes(brand.brand.logo) && getComputedStyle(modernHome.firstElementChild,'::after').content === 'none',
+                modernHomeBranded: getComputedStyle(modernHome.firstElementChild,'::after').maskImage.includes(brand.brand.logo) && getComputedStyle(modernHome,'::after').content === 'none',
+                modernHomeSquare: getComputedStyle(modernHome.firstElementChild,'::before').width === '40px' && getComputedStyle(modernHome.firstElementChild,'::before').height === '40px' && getComputedStyle(modernHome.firstElementChild,'::after').width === '32px',
                 homeRoutesFromMouseAndKeyboard: routes.length === 3,
                 primaryButtonGold: getComputedStyle(primary).backgroundColor === 'rgb(248, 195, 50)',
                 primaryTextReadable: getComputedStyle(primary).color === 'rgb(33, 26, 8)',

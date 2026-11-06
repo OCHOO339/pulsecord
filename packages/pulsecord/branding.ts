@@ -16,7 +16,9 @@ export function brandingCss(logo: string, largeLogo = logo, fontCss = "") {
     ].join(',');
     const wordmarks = '[class*="wordmarkWindows_"],[class*="wordmarkMacOS_"]';
     const homeTargets = '[data-guilds-bar-home],[data-list-item-id="guildsnav___home"],[data-list-id="guildsnav"] a[href="/channels/@me"],[class*="guilds_"] a[href="/channels/@me"]';
-    const home = `:is(${homeTargets}):not(:is(${homeTargets}) *)`;
+    // The guilds-bar wrapper includes the unread indicator and horizontal spacing.
+    // Paint the actual button so its square dimensions match adjacent servers.
+    const home = `:is(:is(${homeTargets}):not(:is(${homeTargets}) *):not([data-guilds-bar-home]:has([role="button"])),[data-guilds-bar-home] [role="button"])`;
     const shades: Record<number, string> = { 50: '#fffaeb', 100: '#fff6d5', 130: '#fff3c7', 160: '#ffefb8', 200: '#ffeaa3', 230: '#ffe695', 260: '#ffe186', 300: '#ffdc72', 330: '#ffd96a', 345: '#ffd766', 360: '#ffd560', 400: '#ffd04f', 430: '#fdcc46', 460: '#fbc83d', 500: '#f8c332', 530: '#edb72a', 560: '#dfaa21', 600: '#cc991b', 630: '#b98717', 660: '#a57613', 700: '#8b6110', 730: '#7e580e', 760: '#714e0d', 800: '#61420b', 830: '#553909', 860: '#483108', 900: '#382606' };
     const palette = Object.entries(shades).map(([level, color]) => `--brand-${level}:${color}!important;--brand-experiment-${level}:${color}!important;`).join('');
     return `
