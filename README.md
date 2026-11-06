@@ -18,7 +18,7 @@ Prérequis : Windows pour produire l’installateur Windows, Git, Node.js 24.19 
 
 ```sh
 corepack pnpm install --frozen-lockfile
-node scripts/prepare.mjs
+node scripts/prepare.mjs --fetch-only
 corepack pnpm --dir upstream/equicord install --frozen-lockfile
 corepack pnpm build
 corepack pnpm typecheck
@@ -27,15 +27,15 @@ corepack pnpm package:installer
 corepack pnpm package:source
 ```
 
-Les sources PulseCord se trouvent dans `packages/`. La préparation récupère les révisions de `upstream.lock.json` dans `upstream/` et applique les modifications. L’installateur est produit dans `release/PulseCord Installer.exe`. L’archive `release/PulseCord-source.zip` comprend les sources correspondantes et les sources amont épinglées.
+Les sources PulseCord se trouvent dans `packages`. La préparation récupère les révisions de `upstream.lock.json` dans `upstream/` et applique les modifications. L’installateur est produit dans `release/PulseCord Installer.exe`. L’archive `release/PulseCord-source.zip` comprend les sources correspondantes et les sources amont épinglées.
 
 La compilation, le contrôle TypeScript et les tests sur fixtures ne garantissent pas la compatibilité avec chaque mise à jour de Discord. Linux et macOS ne sont pas validés.
 
 ## Publication
 
-`corepack pnpm publish:github` compile, vérifie, empaquette, signe et publie la release, puis vérifie son téléchargement public. Cette commande exige les droits de publication et la clé privée correspondant à la clé publique dans `updates.json`. La clé privée n’est jamais versionnée.
+Chaque push sur `main` lance le workflow [Publish PulseCord](.github/workflows/release.yml) : compilation, vérification TypeScript, tests, création de l’installateur et des sources, signature puis publication de la release. Le workflow vérifie ensuite la signature et le téléchargement public de la mise à jour. Il peut aussi être lancé manuellement depuis Actions.
 
-Le [modèle GitHub Actions](docs/github-actions-release.yml) doit être placé dans `.github/workflows/release.yml` avec une connexion autorisée à gérer les workflows. Il pourra ensuite être lancé manuellement après configuration du secret de dépôt `PULSECORD_UPDATE_KEY_PEM`. Voir [le guide des mises à jour](docs/UPDATES.md).
+Configurer une fois le secret Actions `PULSECORD_UPDATE_KEY_PEM` avec la clé privée correspondant à la clé publique dans `updates.json`. La clé privée n’est jamais versionnée. GitHub fournit automatiquement le token de publication. Voir [le guide des mises à jour](docs/UPDATES.md).
 
 ## Récupération et licences
 

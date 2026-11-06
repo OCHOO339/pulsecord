@@ -2,7 +2,6 @@
 import { readFileSync, writeFileSync, mkdirSync, cpSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
-import { restorePluginUi, preparePluginLocalization, prepareCustomPluginLocalization } from './localize-plugins.mjs';
 const lock = JSON.parse(readFileSync('upstream.lock.json', 'utf8'));
 const brand = JSON.parse(readFileSync('brand.json', 'utf8'));
 const updates = JSON.parse(readFileSync('updates.json', 'utf8'));
@@ -21,6 +20,8 @@ for (const [name, entry] of Object.entries(lock)) {
     if (sha !== entry.commit) throw Error(`${name}: unexpected revision ${sha}`);
 }
 const base = 'upstream/equicord/';
+if (process.argv.includes('--fetch-only')) process.exit(0);
+const { restorePluginUi, preparePluginLocalization, prepareCustomPluginLocalization } = await import('./localize-plugins.mjs');
 restorePluginUi(base);
 function patch(file, changes) {
     // Always derive the small overlay from the pinned source, never mutate an arbitrary revision.

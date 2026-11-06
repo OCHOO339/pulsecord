@@ -30,16 +30,16 @@ La notification est locale au client. Aucun compte bot Discord, message réseau 
 
 ## Publication officielle
 
-Publication automatique depuis le poste connecté à GitHub : `corepack pnpm publish:github`. La commande compile, vérifie TypeScript et les tests, prépare l'installateur et les sources, signe le paquet, téléverse les quatre fichiers dans une release en brouillon puis la publie comme Latest. Elle vérifie ensuite la signature et le téléchargement depuis l'URL publique du client. GitHub CLI doit être connecté avec un compte autorisé à publier sur OCHOO339/pulsecord ; la clé de signature privée reste locale.
+Chaque push sur `main` lance automatiquement [Publish PulseCord](../.github/workflows/release.yml) sur Windows. Le workflow compile, vérifie TypeScript et les tests, prépare l'installateur et les sources, signe le paquet, téléverse les quatre fichiers dans une release en brouillon puis la publie comme Latest. Il vérifie ensuite la signature et le téléchargement depuis l'URL publique du client. Le token GitHub Actions dispose de `contents: write` ; aucune connexion GitHub CLI locale n'est nécessaire.
 
 La clé publique est dans updates.json et embarquée dans le client. La clé privée locale est dans `.pulsecord-publisher/private-key.pem`, exclue de Git et de l'archive des sources. Conserver une sauvegarde privée de cette clé ; elle ne doit jamais devenir un fichier du dépôt ou un asset de Release.
 
-Le workflow `.github/workflows/release.yml` est prêt pour le dépôt indiqué. Configuration initiale nécessaire dans GitHub :
+Le workflow actif est dans `.github/workflows/release.yml`. Configuration initiale nécessaire dans GitHub :
 
 1. Publier les sources dans le dépôt.
 2. Dans les secrets Actions du dépôt, définir `PULSECORD_UPDATE_KEY_PEM` avec le contenu de la clé privée locale.
 3. Garder le dépôt et les assets de Releases accessibles publiquement pour que les clients puissent télécharger les mises à jour sans token.
-4. Lancer **Publish PulseCord** depuis Actions.
+4. Pousser sur `main`, ou lancer **Publish PulseCord** manuellement depuis Actions.
 
 Le workflow compile, vérifie les types, exécute les tests et produit l'installateur, le paquet signé, son manifeste et les sources correspondantes. Il publie une Release nommée PulseCord. Le manifeste utilise l'adresse latest, donc les clients retrouvent automatiquement le build publié.
 
@@ -61,4 +61,4 @@ corepack pnpm package:source
 
 Les tests vérifient signature correcte/incorrecte, clé étrangère, intégrité, plateforme, downgrade, archive avec traversée de chemin, activation sans modification de l'ASAR, retour arrière, déduplication de la notification et programmation du redémarrage. Les requêtes et le redémarrage sont simulés pendant les tests.
 
-Cette nouvelle implémentation n'a pas encore passé le build/typecheck final ni été publiée : les dernières exécutions demandant une approbation ont échoué car le contrôle automatique d'approbation a atteint la limite d'utilisation du compte. La connexion GitHub n'est pas encore confirmée dans la session. Le workflow n'a donc pas été exécuté et aucun canal de mise à jour opérationnel n'est annoncé comme déjà publié.
+Le résultat de chaque compilation et publication est visible dans l'onglet Actions du dépôt. Une exécution réussie inclut la vérification du manifeste signé et du téléchargement public du paquet correspondant au build.

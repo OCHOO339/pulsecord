@@ -1,6 +1,8 @@
 name: Publish PulseCord
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -38,7 +40,7 @@ jobs:
         run: |
           corepack enable
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          node scripts/prepare.mjs
+          node scripts/prepare.mjs --fetch-only
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           pnpm --dir upstream/equicord install --frozen-lockfile
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -63,10 +65,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          $releaseTag = 'pulsecord-build-' + $env:GITHUB_RUN_NUMBER
-          $archive = (Get-ChildItem -LiteralPath release/updates -Filter '*.zip' | Select-Object -First 1).FullName
-          gh release create $releaseTag 'release/PulseCord Installer.exe' 'release/PulseCord-source.zip' 'release/updates/pulsecord-update.json' $archive --title 'PulseCord' --notes-file CHANGELOG.md --latest --target $env:GITHUB_SHA
+          $releaseTag = 'pulsecord-build-' + $env:GITHUB_RUN_NUMBER + '-' + $env:GITHUB_RUN_ATTEMPT
+          $archive = node --input-type=module -e "import {readFileSync} from 'node:fs'; const envelope=JSON.parse(readFileSync('release/updates/pulsecord-update.json')); const release=JSON.parse(Buffer.from(envelope.payload,'base64')); console.log('release/updates/'+new URL(release.bundleUrl).pathname.split('/').pop());"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          gh release create $releaseTag 'release/PulseCord Installer.exe' 'release/PulseCord-source.zip' 'release/updates/pulsecord-update.json' $archive --draft --title 'PulseCord' --notes-file CHANGELOG.md --target $env:GITHUB_SHA
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          gh release edit $releaseTag --draft=false --latest
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify public signed update and download
+        run: node scripts/verify-published-update.mjs
       - name: Remove temporary signing key
         if: always()
         run: |

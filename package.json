@@ -14,7 +14,6 @@
     "package:source": "node scripts/source.mjs",
     "setup:updates": "node scripts/setup-updates.mjs",
     "publish:prepare": "node scripts/publish-update.mjs",
-    "publish:github": "node scripts/publish-github.mjs",
     "installer": "node scripts/run-installer.mjs",
     "package:installer": "node scripts/package.mjs && node scripts/build-installer.mjs"
   },
