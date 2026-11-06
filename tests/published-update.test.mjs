@@ -29,7 +29,10 @@ for (const scenario of ['valid', 'corrupt', 'stale']) {
         await writeFile(preload, `
             globalThis.setTimeout = callback => { queueMicrotask(callback); };
             globalThis.fetch = async url => {
-                if (url.endsWith('/manifest.json')) return {ok:true,json:async()=>(${JSON.stringify(remote)})};
+                if (new URL(url).pathname.endsWith('/manifest.json')) {
+                    if (!new URL(url).searchParams.has('_pulsecord_check')) throw Error('Manifest URL must bypass the cache');
+                    return {ok:true,json:async()=>(${JSON.stringify(remote)})};
+                }
                 if (url.endsWith('/update.zip')) return {ok:true,arrayBuffer:async()=>Buffer.from(${JSON.stringify(scenario === 'corrupt' ? 'corrupt' : bytes.toString())})};
                 throw Error('Unexpected request: '+url);
             };

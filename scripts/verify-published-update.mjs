@@ -7,7 +7,9 @@ const expected = verifyRelease(JSON.parse(await readFile('release/updates/pulsec
 let lastError;
 for (let attempt = 0; attempt < 15; attempt++) {
     try {
-        const response = await fetch(config.manifestUrl, { headers: { 'User-Agent': 'PulseCord Publisher', 'Cache-Control': 'no-cache' }, signal: AbortSignal.timeout(30000) });
+        const manifestUrl = new URL(config.manifestUrl);
+        manifestUrl.searchParams.set('_pulsecord_check', `${Date.now()}-${attempt}`);
+        const response = await fetch(manifestUrl.href, { cache: 'no-store', headers: { 'User-Agent': 'PulseCord Publisher', 'Cache-Control': 'no-cache' }, signal: AbortSignal.timeout(30000) });
         if (!response.ok) throw Error(`Public manifest returned ${response.status}`);
         const release = verifyRelease(await response.json(), config.publicKey, process.platform, process.arch);
         if (release.bundleId !== expected.bundleId) throw Error('The public update does not match this build yet');

@@ -32,14 +32,23 @@ async function fixture(t, fault) {
     const envelope = { payload: releaseBytes.toString('base64'), signature: sign(null, releaseBytes, keys.privateKey).toString('base64') };
     if (fault === 'signature') envelope.signature = Buffer.alloc(64).toString('base64');
     const downloaded = Buffer.from(zip); if (fault === 'corruption') downloaded[downloaded.length - 1] ^= 1;
-    const scheduled = []; let relaunched = 0; let exitCode; let relaunchOptions;
+    const scheduled = []; const manifestRequests = []; let relaunched = 0; let exitCode; let relaunchOptions;
     const config = { manifestUrl: 'https://github.com/OCHOO339/pulsecord/releases/latest/download/pulsecord-update.json', publicKey: keys.publicKey.export({ type: 'spki', format: 'pem' }) };
     const context = { module: { exports: {} }, URL, Buffer, AbortSignal, console,
         process: { resourcesPath: resources, platform: 'win32', arch: 'x64', execPath: path.join(root, 'Discord.exe'), argv: ['Discord.exe', '--app=old-app.asar', '--squirrel-updated'] },
         setTimeout(fn) { scheduled.push(fn); return scheduled.length; },
         async fetch(url, options) {
-            assert.deepEqual(Object.keys(options.headers), ['User-Agent']);
-            const bytes = url === config.manifestUrl ? Buffer.from(JSON.stringify(envelope)) : downloaded;
+            const requestUrl = new URL(url);
+            const isManifest = requestUrl.pathname === new URL(config.manifestUrl).pathname;
+            if (isManifest) {
+                assert.equal(options.cache, 'no-store');
+                assert.equal(options.headers['Cache-Control'], 'no-cache');
+                assert.ok(requestUrl.searchParams.has('_pulsecord_check'));
+                manifestRequests.push(url);
+            } else {
+                assert.equal(url, release.bundleUrl, 'Never modify the signed bundle URL');
+            }
+            const bytes = isManifest ? Buffer.from(JSON.stringify(envelope)) : downloaded;
             const response = new Response(bytes); Object.defineProperty(response, 'url', { value: url }); return response;
         },
         require(name) {
@@ -61,8 +70,16 @@ async function fixture(t, fault) {
         vm.runInNewContext(compiled.code, instance);
         return instance.module.exports;
     }
-    return { api: load(old.current), restarted: () => load(release.bundleId), resources, old, wrapper, release, scheduled, relaunched: () => relaunched, exitCode: () => exitCode, relaunchOptions: () => relaunchOptions, executable: context.process.execPath };
+    return { api: load(old.current), restarted: () => load(release.bundleId), resources, old, wrapper, release, scheduled, manifestRequests, relaunched: () => relaunched, exitCode: () => exitCode, relaunchOptions: () => relaunchOptions, executable: context.process.execPath };
 }
+
+test('successive checks bypass cached latest redirects with unique manifest URLs', async t => {
+    const f = await fixture(t);
+    assert.equal((await f.api.checkForUpdates({})).phase, 'available');
+    assert.equal((await f.api.checkForUpdates({})).phase, 'available');
+    assert.equal(f.manifestRequests.length, 2);
+    assert.notEqual(f.manifestRequests[0], f.manifestRequests[1]);
+});
 test('native updater verifies, stages, activates and schedules a Discord relaunch', async t => {
     const f = await fixture(t); const checked = await f.api.checkForUpdates({}); assert.equal(checked.phase, 'available');
     const applied = await f.api.applyUpdate({}); assert.equal(applied.phase, 'restarting');

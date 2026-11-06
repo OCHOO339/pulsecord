@@ -37,11 +37,14 @@ let state: UpdateState = { ...current, phase: configured ? "idle" : "unconfigure
 let pending: Release | undefined;
 let checking: Promise<UpdateState> | undefined;
 let applying = false;
+let manifestChecks = 0;
 const resources = resolve(process.resourcesPath);
 
-async function download(url: string, limit: number) {
+async function download(url: string, limit: number, fresh = false) {
     if (new URL(url).protocol !== "https:") throw Error("Update downloads require HTTPS");
-    const response = await fetch(url, { signal: AbortSignal.timeout(60000), headers: { "User-Agent": "PulseCord Updater" } });
+    const requestUrl = new URL(url);
+    if (fresh) requestUrl.searchParams.set("_pulsecord_check", `${Date.now()}-${++manifestChecks}`);
+    const response = await fetch(requestUrl.href, { signal: AbortSignal.timeout(60000), cache: fresh ? "no-store" : "default", headers: { "User-Agent": "PulseCord Updater", ...(fresh ? { "Cache-Control": "no-cache" } : {}) } });
     if (!response.ok) throw Error(`Update server returned ${response.status}`);
     if (new URL(response.url).protocol !== "https:" || !response.body) throw Error("Invalid update response");
     const chunks: Uint8Array[] = []; let size = 0;
@@ -63,7 +66,7 @@ export async function checkForUpdates(_event: Electron.IpcMainInvokeEvent): Prom
     checking = (async () => {
         state = { ...current, phase: "checking" };
         try {
-            const bytes = await download(brand.updates.manifestUrl, 128000);
+            const bytes = await download(brand.updates.manifestUrl, 128000, true);
             const release: Release = verifyRelease(JSON.parse(bytes.toString("utf8")), brand.updates.publicKey, process.platform, process.arch);
             const installed = await getInstallation(resources);
             if (isOlder(release.version, installed.version || brand.version)) throw Error("The release server offered an older build");

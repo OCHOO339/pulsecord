@@ -66,16 +66,23 @@ export function brandingCss(logo: string, largeLogo = logo, fontCss = "") {
         button,input,select,textarea { font-family:inherit; }
         ${home} {
             position:relative!important;
+            display:grid!important;place-items:center;
+            box-sizing:border-box!important;padding:0!important;
+            width:40px!important;height:40px!important;
+            min-width:40px!important;max-width:40px!important;
+            min-height:40px!important;max-height:40px!important;
+            margin-inline:auto;flex-shrink:0;
         }
+        ${home} > [class*="childWrapper_"] { width:40px!important;height:40px!important; }
         ${home} :is(svg,img) { opacity:0!important; }
         ${home}::before {
             content:"";position:absolute;inset:0;margin:auto;
-            width:100%;height:100%;
+            width:40px;height:40px;
             background:var(--background-surface-higher,var(--background-secondary,#232428));
             border-radius:14px;pointer-events:none;
         }
         ${home}::after {
-            content:"";position:absolute;inset:0;margin:auto;width:80%;height:80%;
+            content:"";position:absolute;inset:0;margin:auto;width:32px;height:32px;
             background:#f8c332;
             mask:${image} center/contain no-repeat;
             -webkit-mask:${image} center/contain no-repeat;

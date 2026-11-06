@@ -16,7 +16,7 @@ app.whenReady().then(async () => {
             .rail{width:56px;display:flex;flex-direction:column;align-items:center;gap:12px}
             [data-guilds-bar-home]{width:56px;display:grid;place-items:center}
             [role=button],.server{width:40px;height:40px;border-radius:14px;background:#252529;display:grid;place-items:center}
-            .wide [role=button],.wide .server{width:48px;height:48px}
+            .wide [role=button]{width:56px;height:48px}
             ${brandingCss(logo)}
             </style><main>${[40,48].map(size => `<section class="rail ${size === 48 ? 'wide' : ''}">
             <div data-guilds-bar-home><div role="button" tabindex="0"><svg width="24" height="24"><path d="M0 0h24v24z"/></svg></div></div>
@@ -27,9 +27,11 @@ app.whenReady().then(async () => {
             return {width:button.offsetWidth,height:button.offsetHeight,backgroundWidth:parseFloat(bg.width),backgroundHeight:parseFloat(bg.height),markWidth:parseFloat(mark.width),wrapperPaint:getComputedStyle(wrapper,'::before').content,hidden:getComputedStyle(button.firstElementChild).opacity};
         })`);
         for (const value of measurements) {
-            assert.equal(value.backgroundWidth, value.width);
-            assert.equal(value.backgroundHeight, value.height);
-            assert.ok(Math.abs(value.markWidth - value.width * .8) < .02);
+            assert.equal(value.width, 40);
+            assert.equal(value.height, 40);
+            assert.equal(value.backgroundWidth, 40);
+            assert.equal(value.backgroundHeight, 40);
+            assert.equal(value.markWidth, 32);
             assert.equal(value.wrapperPaint, 'none');
             assert.equal(value.hidden, '0');
         }
@@ -40,7 +42,7 @@ app.whenReady().then(async () => {
         const hover = await window.webContents.executeJavaScript(`getComputedStyle(document.querySelector('[role=button]'),'::before').backgroundColor`);
         assert.equal(hover, 'rgb(248, 195, 50)');
         await fs.writeFile('dist/qa/pulsecord-home-hover.png', (await window.webContents.capturePage()).toPNG());
-        console.log('Home branding: square 40/48 px buttons, centered logo, wrapper unpainted, hover verified.');
+        console.log('Home branding: fixed 40 x 40 px buttons even with oversized host styles, centered logo, wrapper unpainted, hover verified.');
         app.exit(0);
     } catch (error) { console.error(error); app.exit(1); }
 });
