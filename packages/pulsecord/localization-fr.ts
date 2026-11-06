@@ -21,7 +21,7 @@ export const french: Record<string, string> = {
     "Some plugins require a restart to fully disable.": "Certains plugins nécessitent un redémarrage pour être entièrement désactivés.",
     "Would you like to restart now?": "Voulez-vous redémarrer maintenant ?",
     "The following plugins require a restart:": "Les plugins suivants nécessitent un redémarrage :",
-    "PulseCord identity, local appearance and settings.": "Identité PulseCord, apparence locale et paramètres.",
+    "PulseCord identity and settings.": "Identité PulseCord et paramètres.",
     "VoiceKeeper": "VoiceKeeper",
     "Apply PulseCord appearance": "Appliquer l’apparence PulseCord", "Local colour preset": "Palette de couleurs locale",
     "Disable costly animations": "Réduire les animations", "Show the PulseCord logo when Discord opens": "Afficher le logo PulseCord à l’ouverture de Discord",

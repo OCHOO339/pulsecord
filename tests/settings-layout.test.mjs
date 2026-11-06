@@ -28,7 +28,7 @@ function settingsPlugin() {
     };
     vm.runInNewContext(compiled.code, context);
     const plugin = context.module.exports.default;
-    for (const [key, title] of [['pulsecord_appearance', 'Appearance'], ['pulsecord_updates', 'Updates']]) {
+    for (const [key, title] of [['pulsecord_performance', 'Performance'], ['pulsecord_updates', 'Updates']]) {
         plugin.customEntries.push({ key, title, Component, Icon: Component });
     }
     return plugin;
@@ -58,7 +58,7 @@ for (const sharedPatch of [false, true]) test(`PulseCord settings survive root r
         assert.equal(tree.layout.filter(node => node.key === 'equicord_section').length, 1);
         const section = tree.layout.find(node => node.key === 'equicord_section');
         assert.equal(section.useTitle(), 'PulseCord Settings');
-        for (const key of ['equicord_plugins', 'equicord_themes', 'pulsecord_updates', 'pulsecord_appearance']) {
+        for (const key of ['equicord_plugins', 'equicord_themes', 'pulsecord_updates', 'pulsecord_performance']) {
             const entry = section.layout.find(node => node.key === key);
             assert.ok(entry, `Missing ${key}`);
             assert.equal(typeof entry.layout[0].layout[0].layout[0].Component, 'function');
