@@ -13,7 +13,7 @@ const { transform } = require('esbuild'); const fflate = require('fflate');
 const compiled = await transform(await fs.readFile('packages/pulsecord/native.ts', 'utf8'), { loader: 'ts', format: 'cjs' });
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 async function fixture(t, fault) {
-    const root = await fs.mkdtemp(path.join(tmpdir(), 'pulsecord-updater-'));
+    const root = await fs.realpath(await fs.mkdtemp(path.join(tmpdir(), 'pulsecord-updater-')));
     t.after(() => fs.rm(root, { recursive: true, force: true }));
     const resources = path.join(root, 'resources'); const initial = path.join(root, 'initial');
     await fs.mkdir(resources); await fs.mkdir(initial);

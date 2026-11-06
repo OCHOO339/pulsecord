@@ -8,7 +8,7 @@ import { once } from 'node:events';
 import lifecycle from '../packages/installer/discord-process.cjs';
 
 test('Windows shutdown terminates only the selected executable path', { skip: process.platform !== 'win32', timeout: 45000 }, async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'pulsecord-process-test-'));
+    const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'pulsecord-process-test-')));
     const children = [];
     try {
         for (const name of ['selected', 'unrelated']) {

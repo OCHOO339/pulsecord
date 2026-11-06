@@ -10,7 +10,7 @@ const require=createRequire(import.meta.url);
 const {launchDiscord,installLauncher}=require('../packages/installer/launcher.cjs');
 const {saveBundle,readSavedBundle}=require('../packages/installer/launcher-state.cjs');
 async function fixture(t){
-    const root=await fs.mkdtemp(path.join(tmpdir(),'pulsecord-launcher-test-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));
+    const root=await fs.realpath(await fs.mkdtemp(path.join(tmpdir(),'pulsecord-launcher-test-')));t.after(()=>fs.rm(root,{recursive:true,force:true}));
     const local=path.join(root,'local');await fs.mkdir(local);
     const loader=new URL('../packages/updates/loader.cjs',import.meta.url);
     async function bundle(name){const directory=path.join(root,name);await fs.mkdir(directory);const code=`// ${name}`;await fs.writeFile(path.join(directory,'patcher.js'),code);await fs.writeFile(path.join(directory,'bundle.json'),JSON.stringify({format:1,version:'0.4.0',files:{'patcher.js':createHash('sha256').update(code).digest('hex')}}));return directory;}

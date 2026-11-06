@@ -1,13 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, rm, realpath, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { install, uninstall, rollback, makeAsar, discover, getInstallation, activateUpdate } from '../packages/installer/core.mjs';
 const sha = data => createHash('sha256').update(data).digest('hex');
 async function fixture(t) {
-    const root = await mkdtemp(path.join(tmpdir(), 'mycord-test-'));
+    // Windows runner TEMP can use a short-name alias; fixtures need canonical paths.
+    const root = await realpath(await mkdtemp(path.join(tmpdir(), 'mycord-test-')));
     t.after(() => rm(root, { recursive: true, force: true }));
     const resources = path.join(root, 'resources'); await mkdir(resources);
     const original = Buffer.from('original Discord fixture — never a live installation');
@@ -33,6 +34,14 @@ test('install, idempotent repair, update, rollback and byte-identical restore', 
 test('refuses another mod without changing files', async t => {
     const f = await fixture(t); await writeFile(path.join(f.resources, '_app.asar'), 'other');
     await assert.rejects(install(f.resources, await f.bundle('a')), /Another mod/);
+    assert.deepEqual(await readFile(path.join(f.resources, 'app.asar')), f.original);
+});
+
+test('refuses a genuinely redirected installation without changing its archive', async t => {
+    const f = await fixture(t);
+    const redirected = path.join(f.root, 'redirected-resources');
+    await symlink(f.resources, redirected, process.platform === 'win32' ? 'junction' : 'dir');
+    await assert.rejects(install(redirected, await f.bundle('a')), /Symlinked installation paths/);
     assert.deepEqual(await readFile(path.join(f.resources, 'app.asar')), f.original);
 });
 test('refuses corrupt payload and path traversal', async t => {
