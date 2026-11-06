@@ -16,9 +16,9 @@ export function brandingCss(logo: string, largeLogo = logo, fontCss = "") {
     ].join(',');
     const wordmarks = '[class*="wordmarkWindows_"],[class*="wordmarkMacOS_"]';
     const homeTargets = '[data-guilds-bar-home],[data-list-item-id="guildsnav___home"],[data-list-id="guildsnav"] a[href="/channels/@me"],[class*="guilds_"] a[href="/channels/@me"]';
-    // The guilds-bar wrapper includes the unread indicator and horizontal spacing.
-    // Paint the actual button so its square dimensions match adjacent servers.
-    const home = `:is(:is(${homeTargets}):not(:is(${homeTargets}) *):not([data-guilds-bar-home]:has([role="button"])),[data-guilds-bar-home] [role="button"])`;
+    // Center the fixed-size mark on the whole guild row. The nested hit target
+    // can be offset to leave room for Discord's unread indicator.
+    const home = `:is(${homeTargets}):not(:is(${homeTargets}) *)`;
     const shades: Record<number, string> = { 50: '#fffaeb', 100: '#fff6d5', 130: '#fff3c7', 160: '#ffefb8', 200: '#ffeaa3', 230: '#ffe695', 260: '#ffe186', 300: '#ffdc72', 330: '#ffd96a', 345: '#ffd766', 360: '#ffd560', 400: '#ffd04f', 430: '#fdcc46', 460: '#fbc83d', 500: '#f8c332', 530: '#edb72a', 560: '#dfaa21', 600: '#cc991b', 630: '#b98717', 660: '#a57613', 700: '#8b6110', 730: '#7e580e', 760: '#714e0d', 800: '#61420b', 830: '#553909', 860: '#483108', 900: '#382606' };
     const palette = Object.entries(shades).map(([level, color]) => `--brand-${level}:${color}!important;--brand-experiment-${level}:${color}!important;`).join('');
     return `
@@ -68,23 +68,25 @@ export function brandingCss(logo: string, largeLogo = logo, fontCss = "") {
             position:relative!important;
             background:transparent!important;
         }
-        ${home} > [class*="childWrapper_"] { background:transparent!important; }
+        ${home} :is([role="button"],[class*="childWrapper_"]) { background:transparent!important; }
         ${home} :is(svg,img) { opacity:0!important; }
         ${home}::before {
-            content:"";position:absolute;inset:0;margin:auto;
+            content:"";position:absolute;left:50%;top:50%;right:auto;bottom:auto;
+            margin:0;transform:translate(-50%,-50%);
             width:40px;height:40px;
             background:var(--background-surface-higher,var(--background-secondary,#232428));
             border-radius:14px;pointer-events:none;
         }
         ${home}::after {
-            content:"";position:absolute;inset:0;margin:auto;width:32px;height:32px;
+            content:"";position:absolute;left:50%;top:50%;right:auto;bottom:auto;
+            margin:0;transform:translate(-50%,-50%);width:32px;height:32px;
             background:#f8c332;
             mask:${image} center/contain no-repeat;
             -webkit-mask:${image} center/contain no-repeat;
             pointer-events:none;
         }
-        ${home}:is(:hover,:focus-visible)::before { background:#f8c332; }
-        ${home}:is(:hover,:focus-visible)::after { background:#211a08; }
+        ${home}:is(:hover,:focus-visible,:has(:focus-visible))::before { background:#f8c332; }
+        ${home}:is(:hover,:focus-visible,:has(:focus-visible))::after { background:#211a08; }
         :is(${marks}) {
             background-image:${image}!important;
             background-repeat:no-repeat!important;

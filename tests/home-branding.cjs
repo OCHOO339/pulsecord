@@ -16,7 +16,7 @@ app.whenReady().then(async () => {
             .rail{width:64px;display:flex;flex-direction:column;align-items:center;gap:12px}
             [data-guilds-bar-home]{width:64px}
             [role=button],.server{width:40px;height:40px;border-radius:14px;background:#252529;display:grid;place-items:center}
-            [role=button]{margin-left:12px}
+            [role=button]{margin-left:8px}
             .wide [role=button]{width:48px;height:40px;margin-left:8px}
             ${brandingCss(logo)}
             </style><main>${[40,48].map(size => `<section class="rail ${size === 48 ? 'wide' : ''}">
@@ -24,8 +24,8 @@ app.whenReady().then(async () => {
             <div class="server">Y</div><div class="server">S</div><span>${size} px</span></section>`).join('')}</main>`;
         await window.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
         const measurements = await window.webContents.executeJavaScript(`Array.from(document.querySelectorAll('[data-guilds-bar-home]')).map(wrapper => {
-            const button=wrapper.firstElementChild, bg=getComputedStyle(button,'::before'), mark=getComputedStyle(button,'::after');
-            return {width:button.offsetWidth,height:button.offsetHeight,backgroundWidth:parseFloat(bg.width),backgroundHeight:parseFloat(bg.height),markWidth:parseFloat(mark.width),paintLeft:button.getBoundingClientRect().left+parseFloat(bg.left)+parseFloat(bg.marginLeft),serverLeft:wrapper.nextElementSibling.getBoundingClientRect().left,wrapperPaint:getComputedStyle(wrapper,'::before').content,hidden:getComputedStyle(button.firstElementChild).opacity};
+            const button=wrapper.firstElementChild, bg=getComputedStyle(wrapper,'::before'), mark=getComputedStyle(wrapper,'::after');
+            return {width:button.offsetWidth,height:button.offsetHeight,backgroundWidth:parseFloat(bg.width),backgroundHeight:parseFloat(bg.height),markWidth:parseFloat(mark.width),paintLeft:wrapper.getBoundingClientRect().left+parseFloat(bg.left)-parseFloat(bg.width)/2,serverLeft:wrapper.nextElementSibling.getBoundingClientRect().left,buttonPaint:getComputedStyle(button,'::before').content,hidden:getComputedStyle(button.firstElementChild).opacity};
         })`);
         for (const [index, value] of measurements.entries()) {
             assert.equal(value.width, index === 0 ? 40 : 48);
@@ -34,14 +34,14 @@ app.whenReady().then(async () => {
             assert.equal(value.backgroundHeight, 40);
             assert.equal(value.markWidth, 32);
             assert.equal(value.paintLeft, value.serverLeft, 'The painted logo must align with the server icons');
-            assert.equal(value.wrapperPaint, 'none');
+            assert.equal(value.buttonPaint, 'none');
             assert.equal(value.hidden, '0');
         }
         await fs.mkdir('dist/qa', { recursive: true });
         await fs.writeFile('dist/qa/pulsecord-home.png', (await window.webContents.capturePage()).toPNG());
         window.webContents.sendInputEvent({ type: 'mouseMove', x: 40, y: 40 });
         await new Promise(resolve => setTimeout(resolve, 100));
-        const hover = await window.webContents.executeJavaScript(`getComputedStyle(document.querySelector('[role=button]'),'::before').backgroundColor`);
+        const hover = await window.webContents.executeJavaScript(`getComputedStyle(document.querySelector('[data-guilds-bar-home]'),'::before').backgroundColor`);
         assert.equal(hover, 'rgb(248, 195, 50)');
         await fs.writeFile('dist/qa/pulsecord-home-hover.png', (await window.webContents.capturePage()).toPNG());
         console.log('Home branding: 40 x 40 px backgrounds align with adjacent servers, native button spacing preserved, hover verified.');
