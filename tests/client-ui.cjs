@@ -102,14 +102,12 @@ app.whenReady().then(async () => {
             primary.style.cssText = 'background:var(--control-primary-background-default);color:var(--control-primary-text-default)';
             fixtures.append(primary);
             const brandingChecks = {
-                dmLogoGold: getComputedStyle(home, '::after').backgroundColor === 'rgb(248, 195, 50)',
-                dmOriginalHidden: getComputedStyle(home.querySelector('svg')).opacity === '0',
-                dmPulseMask: getComputedStyle(home, '::after').maskImage.includes(brand.brand.logo),
-                dmGeometryPreserved: home.getBoundingClientRect().width === 48 && home.getBoundingClientRect().height === 48 && home.firstElementChild.getBoundingClientRect().width === 48 && parseFloat(getComputedStyle(home, '::after').width) === 32 && parseFloat(getComputedStyle(home, '::before').width) === 40,
-                dmClickPreserved: homeClicks === 1 && getComputedStyle(home, '::after').pointerEvents === 'none',
+                dmOriginalVisible: getComputedStyle(home.querySelector('svg')).opacity === '1',
+                dmNoReplacement: getComputedStyle(home, '::after').content === 'none' && getComputedStyle(home, '::before').content === 'none',
+                dmGeometryPreserved: home.getBoundingClientRect().width === 48 && home.getBoundingClientRect().height === 48 && home.firstElementChild.getBoundingClientRect().width === 48,
+                dmClickPreserved: homeClicks === 1,
                 friendsLinkPreserved: getComputedStyle(friends.querySelector('svg')).opacity === '1' && getComputedStyle(friends, '::after').content === 'none',
-                modernHomeBranded: getComputedStyle(modernHome,'::after').maskImage.includes(brand.brand.logo) && getComputedStyle(modernHome.firstElementChild,'::after').content === 'none',
-                modernHomeSquare: getComputedStyle(modernHome,'::before').width === '40px' && getComputedStyle(modernHome,'::before').height === '40px' && getComputedStyle(modernHome,'::after').width === '32px',
+                modernHomePreserved: getComputedStyle(modernHome.querySelector('svg')).opacity === '1' && getComputedStyle(modernHome,'::after').content === 'none' && getComputedStyle(modernHome.firstElementChild,'::after').content === 'none',
                 homeRoutesFromMouseAndKeyboard: routes.length === 3,
                 primaryButtonGold: getComputedStyle(primary).backgroundColor === 'rgb(248, 195, 50)',
                 primaryTextReadable: getComputedStyle(primary).color === 'rgb(33, 26, 8)',

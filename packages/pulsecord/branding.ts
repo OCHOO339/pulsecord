@@ -16,9 +16,7 @@ export function brandingCss(logo: string, largeLogo = logo, fontCss = "") {
     ].join(',');
     const wordmarks = '[class*="wordmarkWindows_"],[class*="wordmarkMacOS_"]';
     const homeTargets = '[data-guilds-bar-home],[data-list-item-id="guildsnav___home"],[data-list-id="guildsnav"] a[href="/channels/@me"],[class*="guilds_"] a[href="/channels/@me"]';
-    // Center the fixed-size mark on the whole guild row. The nested hit target
-    // can be offset to leave room for Discord's unread indicator.
-    const home = `:is(${homeTargets}):not(:is(${homeTargets}) *)`;
+    const outsideHome = `:not(:is(${homeTargets},:is(${homeTargets}) *))`;
     const shades: Record<number, string> = { 50: '#fffaeb', 100: '#fff6d5', 130: '#fff3c7', 160: '#ffefb8', 200: '#ffeaa3', 230: '#ffe695', 260: '#ffe186', 300: '#ffdc72', 330: '#ffd96a', 345: '#ffd766', 360: '#ffd560', 400: '#ffd04f', 430: '#fdcc46', 460: '#fbc83d', 500: '#f8c332', 530: '#edb72a', 560: '#dfaa21', 600: '#cc991b', 630: '#b98717', 660: '#a57613', 700: '#8b6110', 730: '#7e580e', 760: '#714e0d', 800: '#61420b', 830: '#553909', 860: '#483108', 900: '#382606' };
     const palette = Object.entries(shades).map(([level, color]) => `--brand-${level}:${color}!important;--brand-experiment-${level}:${color}!important;`).join('');
     return `
@@ -64,36 +62,13 @@ export function brandingCss(logo: string, largeLogo = logo, fontCss = "") {
         }
         body { font-family:var(--font-primary); }
         button,input,select,textarea { font-family:inherit; }
-        ${home} {
-            position:relative!important;
-            background:transparent!important;
-        }
-        ${home} :is([role="button"],[class*="childWrapper_"]) { background:transparent!important; }
-        ${home} :is(svg,img) { opacity:0!important; }
-        ${home}::before {
-            content:"";position:absolute;left:50%;top:50%;right:auto;bottom:auto;
-            margin:0;transform:translate(-50%,-50%);
-            width:40px;height:40px;
-            background:var(--background-surface-higher,var(--background-secondary,#232428));
-            border-radius:14px;pointer-events:none;
-        }
-        ${home}::after {
-            content:"";position:absolute;left:50%;top:50%;right:auto;bottom:auto;
-            margin:0;transform:translate(-50%,-50%);width:32px;height:32px;
-            background:#f8c332;
-            mask:${image} center/contain no-repeat;
-            -webkit-mask:${image} center/contain no-repeat;
-            pointer-events:none;
-        }
-        ${home}:is(:hover,:focus-visible,:has(:focus-visible))::before { background:#f8c332; }
-        ${home}:is(:hover,:focus-visible,:has(:focus-visible))::after { background:#211a08; }
-        :is(${marks}) {
+        :is(${marks})${outsideHome} {
             background-image:${image}!important;
             background-repeat:no-repeat!important;
             background-position:center!important;
             background-size:contain!important;
         }
-        :is(${marks}) > * { opacity:0!important; }
+        :is(${marks})${outsideHome} > * { opacity:0!important; }
         :is(${wordmarks}) {
             display:flex!important;align-items:center;gap:6px;font-size:13px!important;
             color:var(--text-muted,#b4b4b4);
@@ -108,9 +83,9 @@ export function brandingCss(logo: string, largeLogo = logo, fontCss = "") {
             content:"PulseCord";display:block;padding-inline-start:44px;line-height:36px;
             font-size:22px;font-weight:600;color:var(--text-normal,#f2f2f2);
         }
-        img[alt="Discord"][src^="/assets/"],
+        :is(img[alt="Discord"][src^="/assets/"],
         img[alt="Discord"][src^="https://discord.com/assets/"],
-        img[src$="/bbbc3d376d38e7bc.svg"],img[src$="/34120ace1e4e4d29.svg"] {
+        img[src$="/bbbc3d376d38e7bc.svg"],img[src$="/34120ace1e4e4d29.svg"])${outsideHome} {
             content:${image}!important;object-fit:contain!important;
         }
         #splash .splash-inner img { content:url("${largeLogo}")!important;object-fit:contain!important; }

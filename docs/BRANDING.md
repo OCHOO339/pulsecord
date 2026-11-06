@@ -1,10 +1,10 @@
 # Logos Discord remplacés par Pulse
 
-PulseCord 0.4.0 applique le logo utilisateur aux marques de l'interface : icône d'accueil, variantes SVG Discord, barre de titre Windows/macOS, marque de connexion, chargement du client, splash natif et favicon. Les avatars personnels et icônes de serveurs ne sont pas ciblés.
+PulseCord 0.4.0 applique le logo utilisateur aux marques de l'interface : variantes SVG Discord, barre de titre Windows/macOS, marque de connexion, chargement du client, splash natif et favicon. Le bouton d'accueil en haut à gauche conserve le logo Discord d'origine. Les avatars personnels et icônes de serveurs ne sont pas ciblés.
 
 Les règles CSS identifient les chemins SVG de marque, dont le chemin `M19.73 4.87…` présent dans le bundle public Discord Stable build 657850 consulté lors de l'implémentation. Elles s'appliquent également aux éléments rendus plus tard par React. Il n'y a ni MutationObserver, ni recherche périodique dans le DOM, ni remplacement global de toutes les images. Les signatures de chemins et les classes de chargement pourront nécessiter une adaptation après une mise à jour Discord.
 
-Le bouton Messages privés est ciblé uniquement dans la navigation des serveurs. Le lien Amis, qui utilise aussi `/channels/@me`, est préservé. Le fond et le symbole utilisent des pseudo-éléments sans capture des clics, sans modifier les dimensions du bouton natif. Les éléments `discordLogo` de ce bouton sont exclus des règles de marque de connexion larges de 160 pixels.
+Le bouton Messages privés dans la navigation des serveurs est exclu des remplacements de marque : son logo SVG, son fond et ses dimensions natifs sont préservés. Aucun pseudo-élément PulseCord n'y est ajouté. Le lien Amis, qui utilise aussi `/channels/@me`, est préservé.
 
 Le splash natif a été identifié en lecture seule dans l'archive de l'application officielle : `splash/index.html` et `splash/index.css`. Les fichiers originaux ne sont pas modifiés ; le style est injecté dans la fenêtre au chargement.
 
