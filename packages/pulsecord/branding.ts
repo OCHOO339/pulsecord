@@ -68,13 +68,13 @@ export function brandingCss(logo: string, largeLogo = logo, fontCss = "") {
         ${home} :is(svg,img) { opacity:0!important; }
         ${home}::before {
             content:"";position:absolute;inset:0;margin:auto;
-            width:100%;height:100%;max-width:40px;max-height:40px;
+            width:100%;height:100%;
             background:var(--background-surface-higher,var(--background-secondary,#232428));
             border-radius:14px;pointer-events:none;
         }
         ${home}::after {
-            content:"";position:absolute;inset:0;margin:auto;width:24px;height:24px;
-            max-width:60%;max-height:60%;background:#f8c332;
+            content:"";position:absolute;inset:0;margin:auto;width:80%;height:80%;
+            background:#f8c332;
             mask:${image} center/contain no-repeat;
             -webkit-mask:${image} center/contain no-repeat;
             pointer-events:none;

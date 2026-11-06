@@ -104,7 +104,7 @@ app.whenReady().then(async () => {
                 dmLogoGold: getComputedStyle(home, '::after').backgroundColor === 'rgb(248, 195, 50)',
                 dmOriginalHidden: getComputedStyle(home.querySelector('svg')).opacity === '0',
                 dmPulseMask: getComputedStyle(home, '::after').maskImage.includes(brand.brand.logo),
-                dmGeometryPreserved: Math.abs(home.getBoundingClientRect().width - 48) < .01 && Math.abs(home.firstElementChild.getBoundingClientRect().width - 48) < .01 && parseFloat(getComputedStyle(home, '::after').width) <= 24 && parseFloat(getComputedStyle(home, '::before').width) === 40,
+                dmGeometryPreserved: Math.abs(home.getBoundingClientRect().width - 48) < .01 && Math.abs(home.firstElementChild.getBoundingClientRect().width - 48) < .01 && Math.abs(parseFloat(getComputedStyle(home, '::after').width) - 38.4) < .02 && parseFloat(getComputedStyle(home, '::before').width) === 48,
                 dmClickPreserved: homeClicks === 1 && getComputedStyle(home, '::after').pointerEvents === 'none',
                 friendsLinkPreserved: getComputedStyle(friends.querySelector('svg')).opacity === '1' && getComputedStyle(friends, '::after').content === 'none',
                 modernHomeBranded: getComputedStyle(modernHome,'::after').maskImage.includes(brand.brand.logo) && getComputedStyle(modernHome.firstElementChild,'::after').content === 'none',
