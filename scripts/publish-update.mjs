@@ -20,7 +20,7 @@ for (const name of Object.keys(manifest.files)) {
 const id = bundleId(manifest.files);
 const filename = `pulsecord-${id}.zip`;
 const zip = zipSync(files, { level: 6 });
-const release = { format: 1, version: manifest.version, platform: process.platform, arch: process.arch, bundleId: id, bundleUrl: new URL(filename, config.manifestUrl).href, sha256: createHash('sha256').update(zip).digest('hex'), size: zip.length, changelog: (await readFile('CHANGELOG.md', 'utf8')).slice(0, 8000) };
+const release = { format: 1, version: manifest.version, platform: process.platform, arch: process.arch, bundleId: id, bundleUrl: new URL(filename, config.manifestUrl).href, sha256: createHash('sha256').update(zip).digest('hex'), size: zip.length, changelog: (await readFile(process.env.PULSECORD_RELEASE_NOTES || 'CHANGELOG.md', 'utf8')).slice(0, 8000) };
 const payload = Buffer.from(JSON.stringify(release));
 await mkdir('release/updates', { recursive: true });
 await writeFile(`release/updates/${filename}`, zip);

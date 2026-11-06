@@ -15,6 +15,8 @@ concurrency:
 jobs:
   windows-release:
     runs-on: windows-latest
+    env:
+      PULSECORD_RELEASE_NOTES: .cache/release-notes.md
     defaults:
       run:
         shell: pwsh
@@ -22,11 +24,14 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: pnpm/setup@v3
         with:
           runtime: node@24.19.0
           require-lockfile: true
           cache: true
+      - name: Generate release notes from pushed commits
+        run: node scripts/release-notes.mjs
       - name: Prepare publisher key
         env:
           PULSECORD_UPDATE_KEY_PEM: ${{ secrets.PULSECORD_UPDATE_KEY_PEM }}
@@ -63,7 +68,7 @@ jobs:
           $releaseTag = 'pulsecord-build-' + $env:GITHUB_RUN_NUMBER + '-' + $env:GITHUB_RUN_ATTEMPT
           $archive = node --input-type=module -e "import {readFileSync} from 'node:fs'; const envelope=JSON.parse(readFileSync('release/updates/pulsecord-update.json')); const release=JSON.parse(Buffer.from(envelope.payload,'base64')); console.log('release/updates/'+new URL(release.bundleUrl).pathname.split('/').pop());"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          gh release create $releaseTag 'release/PulseCord Installer.exe' 'release/PulseCord-source.zip' 'release/updates/pulsecord-update.json' $archive --draft --title 'PulseCord' --notes-file CHANGELOG.md --target $env:GITHUB_SHA
+          gh release create $releaseTag 'release/PulseCord Installer.exe' 'release/PulseCord-source.zip' 'release/updates/pulsecord-update.json' $archive --draft --title 'PulseCord' --notes-file $env:PULSECORD_RELEASE_NOTES --target $env:GITHUB_SHA
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           gh release edit $releaseTag --draft=false --latest
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

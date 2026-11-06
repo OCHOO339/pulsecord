@@ -37,6 +37,8 @@ Chaque push sur `main` lance le workflow [Publish PulseCord](.github/workflows/r
 
 Configurer une fois le secret Actions `PULSECORD_UPDATE_KEY_PEM` avec la clé privée correspondant à la clé publique dans `updates.json`. La clé privée n’est jamais versionnée. GitHub fournit automatiquement le token de publication. Voir [le guide des mises à jour](docs/UPDATES.md).
 
+Les notes de release reprennent les commits du push dans l’ordre : une puce pour le résumé, puis une pour la description lorsqu’elle existe. Ces mêmes notes apparaissent dans les mises à jour PulseCord (limitées à 8 000 caractères dans le manifeste signé). Un lancement manuel utilise le message du commit sélectionné.
+
 ## Récupération et licences
 
 L’installateur propose la réparation et la désinstallation de PulseCord. Il refuse de remplacer une sauvegarde ou un chargeur dont il ne peut pas vérifier l’origine. Pour démarrer sans charger le mod, lancer Discord avec `--vanilla`.
