@@ -6,7 +6,12 @@ import { promises as fs } from "original-fs";
 import { join } from "path";
 let busy = false;
 let lastBackup: string | undefined;
-function backupDirectory() { return join(app.getPath("documents"), "PulseCord Backups"); }
+function backupDirectory() {
+    // Flatpak's unshared Documents directory may be temporary. Keep automatic
+    // backups in the app's persistent data instead of the sandbox home tmpfs.
+    if (process.platform === "linux" && process.env?.FLATPAK_ID) return join(DATA_DIR, "backups");
+    return join(app.getPath("documents"), "PulseCord Backups");
+}
 export async function backupConfiguration(_event: Electron.IpcMainInvokeEvent) {
     if (busy) throw Error("Une sauvegarde ou restauration est déjà en cours.");
     busy = true;

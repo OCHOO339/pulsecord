@@ -14,6 +14,8 @@ Si la distribution ne peut pas ouvrir les AppImage, utiliser l'archive **PulseCo
 
 Ne pas lancer l'installateur avec `sudo`. Aucune permission globale `--filesystem=host`, désactivation du sandbox ou modification des fichiers système de Discord n'est nécessaire.
 
+Les sauvegardes automatiques restent dans les données persistantes de PulseCord à l'intérieur du Flatpak ; elles ne dépendent pas d'un dossier Documents non partagé avec le sandbox.
+
 ## Fonctionnement
 
 L'installateur interroge `flatpak info` pour trouver le déploiement local. Il conserve une copie privée, spécifique à son commit, dans `~/.var/app/com.discordapp.Discord/data/pulsecord/runtimes/`. L'archive Discord originale du déploiement Flatpak reste intacte.

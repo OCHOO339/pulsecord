@@ -22,7 +22,7 @@ export function BackupsTab() {
         catch (error) { setStatus(String(error)); } finally { setBusy(false); }
     }
     return <><SettingsBanner /><section className="pulsecord"><h1>Sauvegarde et restauration</h1>
-        <p>Enregistrez les plugins activés et leurs réglages, vos thèmes locaux et QuickCSS dans Documents → PulseCord Backups.</p>
+        <p>Enregistrez les plugins activés et leurs réglages, vos thèmes locaux et QuickCSS dans le dossier de sauvegarde PulseCord. Le chemin est affiché après l'enregistrement.</p>
         <div className="pc-update-actions"><button disabled={busy} onClick={save}>Sauvegarder en un clic</button><button disabled={busy} onClick={restore}>Restaurer une sauvegarde</button>{hasBackup && <button disabled={busy} onClick={() => native().revealLastBackup()}>Ouvrir le dossier</button>}</div>
         <p role="status" className="pc-backup-status">{status}</p>
         <p>Ce fichier est personnel : les réglages peuvent contenir les clés de vos plugins. Les fichiers des plugins et la connexion Discord ne sont pas inclus.</p>

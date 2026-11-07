@@ -80,14 +80,16 @@ async function prepareFlatpakTarget(target, action) {
     if (await fs.realpath(resources) !== resources) throw Error('Ressources Flatpak redirigées.');
     const bin = path.join(dataRoot, 'bin'); await fs.mkdir(bin, { recursive: true });
     if (await fs.realpath(bin) !== bin) throw Error('Dossier de lancement redirigé.');
-    const shim = `#!/bin/sh\n# PulseCord: retain the official Flatpak wrapper and its sandbox.\nif [ "$1" = "/app/discord/Discord" ]; then\n  shift\n  exec /app/bin/zypak-wrapper "/var/data/pulsecord/runtimes/${target.commit}/Discord" "$@"\nfi\nexec /app/bin/zypak-wrapper "$@"\n`;
+    const shim = `#!/bin/sh\n# PulseCord: retain the official Flatpak wrapper and its sandbox.\nif [ "$1" = "/app/discord/Discord" ]; then\n  shift\n  exec /app/bin/zypak-wrapper "$XDG_DATA_HOME/pulsecord/runtimes/${target.commit}/Discord" "$@"\nfi\nexec /app/bin/zypak-wrapper "$@"\n`;
     const temporary = path.join(bin, '.zypak-' + randomUUID());
     try { await fs.writeFile(temporary, shim, { mode: 0o755, flag: 'wx' }); await fs.rename(temporary, path.join(bin, 'zypak-wrapper')); }
     finally { await fs.rm(temporary, { force: true }); }
 }
 function flatpakRunArgs(appId, modified) {
     if (!appIds.includes(appId)) throw Error('Canal Flatpak invalide.');
-    return ['run', ...(modified ? ['--env=PATH=/var/data/pulsecord/bin:/app/bin:/usr/bin:/bin'] : []), appId];
+    return modified
+        ? ['run', '--command=sh', appId, '-c', `export PATH="$XDG_DATA_HOME/pulsecord/bin:$PATH"; exec /app/bin/${appId} "$@"`, 'pulsecord']
+        : ['run', appId];
 }
 async function stopFlatpak(target, run = execute) {
     validate(target);

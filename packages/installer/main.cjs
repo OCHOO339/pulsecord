@@ -159,7 +159,7 @@ app.whenReady().then(async () => {
             const fs = require('node:fs/promises');
             await fs.mkdir(path.resolve('dist/qa'), { recursive: true });
             const disk = require('original-fs').promises;
-            const fixture = await disk.mkdtemp(path.join(require('node:os').tmpdir(), 'pulsecord-electron-test-'));
+            const fixture = await disk.realpath(await disk.mkdtemp(path.join(require('node:os').tmpdir(), 'pulsecord-electron-test-')));
             try {
                 const resources = path.join(fixture, 'resources');
                 const bundle = path.join(fixture, 'bundle');

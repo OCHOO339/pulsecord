@@ -27,7 +27,7 @@ test('Flatpak discovery resolves installed deployments and uses only private use
     assert.equal(await fs.readFile(path.join(f.resources,'app.asar'),'utf8'),'original');
     assert.match(await fs.readFile(path.join(f.dataRoot,'bin/zypak-wrapper'),'utf8'),/exec \/app\/bin\/zypak-wrapper/);
     await linux.prepareFlatpakTarget(found[0],'repair');
-    assert.deepEqual(linux.flatpakRunArgs(id,true),['run','--env=PATH=/var/data/pulsecord/bin:/app/bin:/usr/bin:/bin',id]);
+    assert.deepEqual(linux.flatpakRunArgs(id,true),['run','--command=sh',id,'-c',`export PATH="$XDG_DATA_HOME/pulsecord/bin:$PATH"; exec /app/bin/${id} "$@"`,'pulsecord']);
     assert.throws(()=>linux.paths('arbitrary.App',commit,f.home));
     await assert.rejects(linux.prepareFlatpakTarget({...f,resources:path.join(f.home,'outside')},'install'));
 });

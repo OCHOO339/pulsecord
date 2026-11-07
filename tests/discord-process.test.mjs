@@ -18,8 +18,9 @@ test('macOS shutdown terminates only the selected application executable',{skip:
             const child=spawn(executable,['-e','process.stdout.write("ready");setInterval(()=>{},1000)'],{stdio:['ignore','pipe','ignore']});children.push(child);await once(child.stdout,'data');
         }
         const exited=once(children[0],'exit');
-        const session=await lifecycle.stop({resources:path.join(root,'selected.app','Contents','Resources')});await exited;
-        assert.equal(session.wasRunning,true);assert.equal(children[1].exitCode,null);assert.doesNotThrow(()=>process.kill(children[1].pid,0));
+        const session=await lifecycle.stop({resources:path.join(root,'selected.app','Contents','Resources')});
+        assert.equal(session.wasRunning,true);await exited;
+        assert.equal(children[1].exitCode,null);assert.doesNotThrow(()=>process.kill(children[1].pid,0));
     }finally{
         for(const child of children)if(child.exitCode===null&&child.signalCode===null){const exited=once(child,'exit');child.kill();await exited;}
         await fs.rm(root,{recursive:true,force:true});
