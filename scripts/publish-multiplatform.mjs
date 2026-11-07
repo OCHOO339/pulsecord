@@ -1,4 +1,4 @@
-// Publish one release only after both platform builds have passed.
+// Publish one release only after all platform builds have passed.
 import {execFileSync} from 'node:child_process';
 import {readFile} from 'node:fs/promises';
 import {basename,resolve} from 'node:path';
@@ -19,8 +19,16 @@ const expected=new Map();
 for(const file of assets){const bytes=await readFile(file);expected.set(basename(file).replaceAll(' ','.'),{size:bytes.length,digest:'sha256:'+createHash('sha256').update(bytes).digest('hex')});}
 if(!/^\d+$/.test(process.env.GITHUB_RUN_NUMBER||'')||!/^\d+$/.test(process.env.GITHUB_RUN_ATTEMPT||'')||!/^[a-f0-9]{40}$/.test(process.env.GITHUB_SHA||''))throw Error('Invalid CI release identity');
 const tag=`pulsecord-build-${process.env.GITHUB_RUN_NUMBER}-${process.env.GITHUB_RUN_ATTEMPT}`;
-const url=gh(['release','create',tag,...assets.map(file=>resolve(file)),'--repo',repo,'--draft','--title','PulseCord','--notes-file','release-artifacts/windows/RELEASE-NOTES.md','--target',process.env.GITHUB_SHA]).trim();
-const metadata=JSON.parse(gh(['api',`repos/${repo}/releases/tags/${tag}`]));
+// Unpublished drafts are absent from the get-by-tag endpoint. Enumerate the
+// authenticated release list so verification happens before making it public.
+const findDraft=()=>JSON.parse(gh(['api',`repos/${repo}/releases?per_page=100`])).find(release=>release.tag_name===tag&&release.draft);
+let metadata=findDraft();
+if(!metadata){
+    gh(['release','create',tag,...assets.map(file=>resolve(file)),'--repo',repo,'--draft','--title','PulseCord','--notes-file','release-artifacts/windows/RELEASE-NOTES.md','--target',process.env.GITHUB_SHA]);
+    metadata=findDraft();
+}
+if(!metadata)throw Error('Created draft release was not found');
+if(metadata.target_commitish!==process.env.GITHUB_SHA)throw Error('Draft release targets an unexpected commit');
 for(const [name,entry] of expected){const asset=metadata.assets.find(asset=>asset.name===name);if(!asset||asset.size!==entry.size||asset.digest!==entry.digest)throw Error('Uploaded release asset verification failed: '+name);}
 gh(['release','edit',tag,'--repo',repo,'--draft=false','--latest']);
-console.log('Published Windows, Linux and macOS release: '+url);
+console.log('Published Windows, Linux and macOS release: '+metadata.html_url);
