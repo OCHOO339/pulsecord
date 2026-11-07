@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { readFileSync, writeFileSync, mkdirSync, cpSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, cpSync, existsSync, rmSync, rmdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 const lock = JSON.parse(readFileSync('upstream.lock.json', 'utf8'));
@@ -132,7 +132,10 @@ cpSync('packages/pulsecord', base + 'src/userplugins/pulsecord', { recursive: tr
 cpSync('packages/focus', base + 'src/userplugins/pulsecordFocus', { recursive: true });
 cpSync('packages/iosEmojis', base + 'src/userplugins/iosEmojis', { recursive: true });
 writeFileSync(base + 'src/userplugins/iosEmojis/font.ts', `export const fontUrl = "data:font/woff2;base64,${readFileSync('packages/iosEmojis/apple-emoji.woff2').toString('base64')}";\n`);
-cpSync('packages/biorotator', base + 'src/userplugins/bioRotator', { recursive: true });
+// Remove the superseded generated entry so incremental builds cannot retain BioRotator.
+rmSync(base + 'src/userplugins/bioRotator/index.ts', { force: true });
+if (existsSync(base + 'src/userplugins/bioRotator')) rmdirSync(base + 'src/userplugins/bioRotator');
+cpSync('packages/statusrotator', base + 'src/userplugins/statusRotator', { recursive: true });
 cpSync('packages/voicekeeper', base + 'src/plugins/bypassvoc', { recursive: true });
 prepareCustomPluginLocalization(base);
 cpSync('packages/pulsecord/nativeBrand.ts', base + 'src/main/pulsecordBrand.ts');
