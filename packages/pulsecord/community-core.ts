@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-const developerIds = new Set(["1366054228480753755"]);
+const developerIds = new Set(["1366054228480753755", "669936721730863105"]);
 export const registryPrefix = "pulsecord-user:";
 export const registryUrl = "https://api.github.com/repos/OCHOO339/pulsecord/labels";
 export const communityCacheMs = 6 * 60 * 60 * 1000;

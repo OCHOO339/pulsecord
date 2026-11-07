@@ -1,6 +1,6 @@
 # Badges de communauté PulseCord
 
-- **Pulse Dev** : réservé à l'ID `1366054228480753755`, défini dans le code du client.
+- **Pulse Dev** : réservé aux IDs `1366054228480753755` et `669936721730863105`, définis dans le code du client.
 - **Pulse User** : attribué aux comptes inscrits et approuvés dans le registre GitHub public.
 - Les badges sont propres à PulseCord : les clients Discord standards ne les affichent pas. Ils indiquent une inscription, pas une présence en temps réel ni une preuve que le client est actuellement ouvert.
 

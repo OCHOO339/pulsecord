@@ -9,7 +9,7 @@ const compile=async file=>(await transform(await readFile(file,'utf8'),{loader:f
 const coreCode=await compile('packages/pulsecord/community-core.ts');
 const storeCode=await compile('packages/pulsecord/community-store.ts');
 const uiCode=await compile('packages/pulsecord/community.tsx');
-const dev='1366054228480753755',friend='669936721730863105',other='123456789012345678';
+const dev='1366054228480753755',coDev='669936721730863105',friend='223456789012345678',other='123456789012345678';
 function core(){const context={module:{exports:{}},URLSearchParams,TextDecoder,Uint8Array};vm.runInNewContext(coreCode,context);return context.module.exports;}
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 function store({cache,fetcher=async()=>new Response(JSON.stringify([{name:'pulsecord-user:'+friend}]))}={}){
@@ -22,15 +22,17 @@ function store({cache,fetcher=async()=>new Response(JSON.stringify([{name:'pulse
     vm.runInNewContext(storeCode,context);return{api:context.module.exports,coreApi,saved,calls:()=>calls};
 }
 
-test('only the configured developer gets Dev; registered users get User and unknown users get no badge',()=>{
+test('configured developers keep Dev independently of the registry; registered users get User',()=>{
     const api=core(),registry=new api.CommunityRegistry();
     assert.equal(registry.role(dev),'dev');assert.equal(registry.role(friend),undefined);
+    assert.equal(registry.role(coDev),'dev');
     registry.replace(api.approvedIds([{name:'pulsecord-user:'+friend},{name:'pulsecord-dev:'+other},{name:'pulsecord-user:invalid'}]));
     assert.equal(registry.role(friend),'user');assert.equal(registry.role(other),undefined);
     registry.replace([dev,friend]);assert.equal(registry.role(dev),'dev');
     assert.throws(()=>registry.replace(['invalid']));assert.equal(registry.role(friend),'user');
     let notified=0;const unsubscribe=registry.subscribe(()=>notified++);registry.replace([dev,friend]);assert.equal(notified,0);
     registry.replace([]);assert.equal(notified,1);unsubscribe();
+    assert.equal(registry.role(coDev),'dev');
 });
 
 test('registry fetch is fixed, anonymous, bounded and excludes unapproved claims',async()=>{
@@ -76,6 +78,7 @@ test('badge surfaces use the same roles, display the Pulse logo and unregister c
     }};
     vm.runInNewContext(uiCode,context);const ui=context.module.exports;ui.startCommunityBadges();await tick();
     const badge=[...profiles][0];assert.equal(badge.getBadges({userId:dev})[0].name,'Pulse Dev');
+    assert.equal(badge.getBadges({userId:coDev})[0].name,'Pulse Dev');
     assert.equal(badge.getBadges({userId:friend})[0].name,'Pulse User');assert.equal(badge.getBadges({userId:other}).length,0);
     assert.equal(ui.PulseCommunityBadge({userId:friend}).props['aria-label'],'Pulse User');
     assert.equal(ui.PulseCommunityBadge({userId:dev}).props['aria-label'],'Pulse Dev');assert.equal(ui.PulseCommunityBadge({userId:other}),null);
