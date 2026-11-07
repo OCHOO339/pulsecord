@@ -44,13 +44,17 @@ app.whenReady().then(async () => {
             window.dispatchEvent(new Event('focus'));await frames();
             check(editor.innerHTML===original,'Animation must never rewrite message content');
             const input=document.createElement('input');document.body.append(input);input.focus();await frames();
-            check(!document.querySelector('.pc-smooth-caret'),'Ordinary inputs must remain native');input.remove();
+            check(!document.querySelector('.pc-smooth-caret'),'Ordinary inputs must remain native');
+            let scheduled=0;const nativeFrame=window.requestAnimationFrame;window.requestAnimationFrame=callback=>{scheduled++;return nativeFrame(callback);};
+            for(let i=0;i<100;i++){document.dispatchEvent(new Event('scroll'));input.dispatchEvent(new Event('input',{bubbles:true}));}
+            window.requestAnimationFrame=nativeFrame;
+            check(scheduled===0,'Unrelated input/scroll must schedule no editor geometry work');input.remove();
             at(10);await frames();setSmoothTyping(false);
             check(!document.querySelector('.pc-smooth-caret')&&!editor.hasAttribute('data-pc-smooth-caret'),'Disable must restore native caret');
             document.dispatchEvent(new Event('selectionchange'));await frames();check(!document.querySelector('.pc-smooth-caret'),'Disable must remove listeners');
             setSmoothTyping(true);at(editor.firstChild.length);await frames();
             window.previewSmoothTyping=async()=>{at(editor.firstChild.length);await frames();for(const animation of document.querySelector('.pc-smooth-caret').getAnimations({subtree:true})){animation.pause();animation.currentTime=0;}};
-            return {singleCaret:true,transition:true,selection:true,composition:true,blur:true,contentPreserved:true,nativeInputs:true,cleanup:true};
+            return {singleCaret:true,transition:true,selection:true,composition:true,blur:true,contentPreserved:true,nativeInputs:true,noUnrelatedFrames:true,cleanup:true};
         })()`);
         await fs.mkdir('dist/qa',{recursive:true});
         await window.webContents.executeJavaScript('window.previewSmoothTyping()');

@@ -27,8 +27,8 @@ export function PulseCordIcon({ width = 20, height = 20 }: IconProps) {
 const settings = definePluginSettings({
     reduceMotion: { type: OptionType.BOOLEAN, description: "Disable costly animations", default: false, onChange: apply },
     smoothTyping: { type: OptionType.BOOLEAN, description: "Curseur fluide pendant la saisie des messages", default: true, onChange: apply },
-    clearCacheOnStartup: { type: OptionType.BOOLEAN, description: "Clear Discord's temporary web cache at startup", default: true },
-    backgroundEconomy: { type: OptionType.BOOLEAN, description: "Pause interface animations while Discord is hidden", default: true, onChange: apply },
+    clearCacheOnStartup: { type: OptionType.BOOLEAN, description: "Vérifier le cache web une fois par semaine et le nettoyer au-delà de 256 Mo", default: true },
+    backgroundEconomy: { type: OptionType.BOOLEAN, description: "Mettre les animations en pause lorsque Discord est masqué ou sans le focus", default: true, onChange: apply },
     startupAnimation: { type: OptionType.BOOLEAN, description: "Show the PulseCord logo when Discord opens", default: true, onChange: apply },
     updateNotifications: { type: OptionType.BOOLEAN, description: "Show PulseCord OFFICIAL update notifications", default: true },
     lastNotifiedUpdate: { type: OptionType.STRING, description: "Last announced update", default: "", hidden: true }
@@ -39,8 +39,8 @@ function apply() {
     setSmoothTyping(settings.store.smoothTyping && !settings.store.reduceMotion);
     if (settings.store.reduceMotion || !settings.store.startupAnimation) stopStartup();
     if (!appearance) return;
-    appearance.textContent = brandingCss(brand.logo, brand.splashLogo, brand.fontCss) +
-        (settings.store.reduceMotion ? '* { animation-duration:0s !important; transition-duration:0s !important; scroll-behavior:auto !important; }' : "");
+    document.documentElement.toggleAttribute("data-pc-reduce-motion", settings.store.reduceMotion);
+    if (!appearance.textContent) appearance.textContent = brandingCss(brand.logo, brand.splashLogo, brand.fontCss);
 }
 const QuickCSS = ErrorBoundary.wrap(() => {
     const [css, setCss] = useState("");
@@ -56,10 +56,10 @@ const Performance = ErrorBoundary.wrap(() => {
     return <section className="pulsecord"><h1>Performance</h1><label><input type="checkbox" checked={state.reduceMotion} onChange={e => settings.store.reduceMotion = e.target.checked} /> Reduce animations and transitions</label>
         <label><input type="checkbox" checked={state.smoothTyping} onChange={e => settings.store.smoothTyping = e.target.checked} /> Curseur fluide pendant la saisie des messages</label>
         <label><input type="checkbox" checked={state.startupAnimation} onChange={e => settings.store.startupAnimation = e.target.checked} /> Show the PulseCord startup logo</label>
-        <label><input type="checkbox" checked={state.clearCacheOnStartup} onChange={e => settings.store.clearCacheOnStartup = e.target.checked} /> Clear temporary web cache at every launch</label>
-        <label><input type="checkbox" checked={state.backgroundEconomy} onChange={e => settings.store.backgroundEconomy = e.target.checked} /> Pause interface animations while Discord is hidden</label>
+        <label><input type="checkbox" checked={state.clearCacheOnStartup} onChange={e => settings.store.clearCacheOnStartup = e.target.checked} /> Nettoyage hebdomadaire du cache web au-delà de 256 Mo</label>
+        <label><input type="checkbox" checked={state.backgroundEconomy} onChange={e => settings.store.backgroundEconomy = e.target.checked} /> Mettre les animations en pause lorsque Discord est masqué ou sans le focus</label>
         <p>Voice, calls and screen sharing keep working. Animations resume when you return to Discord.</p>
-        <p>Applies from the next launch. This frees disk space; the first load may be slower. Your login, settings and cached translations are kept.</p>
+        <p>Le cache utile est conservé pour accélérer les chargements. Le contrôle hebdomadaire commence 30 secondes après le lancement ; la connexion, les réglages et les traductions sont conservés.</p>
         <h2>Diagnose a problem</h2><p>Close Discord, then launch it with <code>--vanilla</code>. This bypasses the mod without deleting your settings. Re-enable plugins individually after restarting normally.</p>
         <p>Patch compatibility remains dependent on the installed Discord build. A successful compilation is not a runtime compatibility check.</p></section>;
 }, { noop: false });
@@ -88,5 +88,5 @@ export default definePlugin({
     renderOfficialDm: () => <OfficialDmRow />,
     flux: { CHANNEL_SELECT: handleInboxNavigation, GUILD_SELECT: handleInboxNavigation },
     start() { SettingsPlugin.customEntries.push(...entries); appearance = document.createElement("style"); document.head.append(appearance); apply(); brandFavicons(brand.logo); showStartup(brand.splashLogo, settings.store.startupAnimation && !settings.store.reduceMotion); startOfficialInbox(); startHomeNavigation(); startUpdates(id => { if (!settings.store.updateNotifications || settings.store.lastNotifiedUpdate === id) return false; settings.store.lastNotifiedUpdate = id; return true; }, next => { if (next.nextBuild) addInboxUpdate(next.nextBuild, next.changelog); }, openOfficialInbox); },
-    stop() { setSmoothTyping(false); setBackgroundEconomy(false); stopHomeNavigation(); stopOfficialInbox(); stopUpdates(); stopStartup(); restoreBrandFavicons(); for (const entry of entries) { const i = SettingsPlugin.customEntries.indexOf(entry); if (i >= 0) SettingsPlugin.customEntries.splice(i, 1); } appearance?.remove(); appearance = undefined; }
+    stop() { document.documentElement.removeAttribute("data-pc-reduce-motion"); setSmoothTyping(false); setBackgroundEconomy(false); stopHomeNavigation(); stopOfficialInbox(); stopUpdates(); stopStartup(); restoreBrandFavicons(); for (const entry of entries) { const i = SettingsPlugin.customEntries.indexOf(entry); if (i >= 0) SettingsPlugin.customEntries.splice(i, 1); } appearance?.remove(); appearance = undefined; }
 });

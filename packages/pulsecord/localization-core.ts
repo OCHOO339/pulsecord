@@ -20,7 +20,7 @@ export class PluginTranslations {
     private active = 0;
     private listeners = new Set<() => void>();
     revision = 0;
-    constructor(private catalogs: Record<string, Record<string, string>>, private provider?: Translator, private persist?: (entries: Array<[string, string]>) => void) {}
+    constructor(private catalogs: Record<string, Record<string, string>>, private provider?: Translator, private persist?: () => void) {}
     subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
     hydrate(entries: Array<[string, string]>) {
         for (const [key, value] of entries.slice(-2000)) if (typeof key === "string" && typeof value === "string" && key.length < 5000 && value.length < 10000) this.store(key, value);
@@ -62,7 +62,9 @@ export class PluginTranslations {
             Promise.resolve().then(() => this.provider!(item.text, translationLanguage(item.locale))).then(value => {
                 if (!value.trim() || value.length > 10000) throw Error("Invalid translation");
                 this.store(item.key, value);
-                this.persist?.([...this.values]);
+                // The persistence callback reads the bounded cache when it saves;
+                // do not copy all cached strings for every translated label.
+                this.persist?.();
                 this.revision++; for (const listener of this.listeners) listener();
             }).catch(() => { this.failed.set(item.key, Date.now()); if (this.failed.size > 4000) this.failed.delete(this.failed.keys().next().value!); }).finally(() => {
                 this.pending.delete(item.key); this.active--; this.pump();

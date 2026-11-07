@@ -16,6 +16,7 @@ export function setSmoothTyping(enabled: boolean) {
     let previous: { x: number; y: number } | undefined;
 
     function hide() {
+        if (frame !== undefined) { cancelAnimationFrame(frame); frame = undefined; }
         editor?.removeAttribute("data-pc-smooth-caret"); editor = undefined;
         caret?.remove(); caret = undefined; previous = undefined;
     }
@@ -51,10 +52,14 @@ export function setSmoothTyping(enabled: boolean) {
         caret.style.height = `${rect.height}px`;
         caret.style.transform = `translate3d(${x}px,${y}px,0)`;
         if (resetBlink) for (const animation of caret.getAnimations({ subtree: true })) animation.currentTime = 0;
-        editor!.setAttribute("data-pc-smooth-caret", "");
+        if (!editor!.hasAttribute("data-pc-smooth-caret")) editor!.setAttribute("data-pc-smooth-caret", "");
         previous = { x, y }; snapNext = false; resetBlink = false;
     }
     function queue(event?: Event) {
+        const active = document.activeElement;
+        if (!active?.closest('[data-slate-editor="true"][contenteditable="true"]')) { hide(); return; }
+        // Scrolling a sidebar must not measure the message editor's layout.
+        if (event?.type === "scroll" && event.target instanceof Element && !event.target.contains(active)) return;
         if (event?.type === "scroll" || event?.type === "resize" || event?.type === "pointerdown") snapNext = true;
         if (event?.type === "input") resetBlink = true;
         if (document.hidden || !focused || composing || reduced.matches) { hide(); return; }

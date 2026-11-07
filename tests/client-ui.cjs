@@ -9,7 +9,7 @@ app.whenReady().then(async () => {
         const { transform } = tooling('esbuild');
         const base = 'upstream/equicord/src/userplugins/pulsecord/';
         const code = {};
-        for (const file of ['index.tsx', 'brand.ts', 'startup.ts', 'branding.ts', 'inbox.tsx', 'inbox-host.ts', 'inbox-background.ts', 'home-navigation.ts', 'markdown.tsx', 'dm-section.tsx', 'settings-banner.tsx', 'backups.tsx', 'performance.ts']) code[file] = (await transform(await fs.readFile(base + file, 'utf8'), { loader: file.endsWith('tsx') ? 'tsx' : 'ts', format: 'cjs' })).code;
+        for (const file of ['index.tsx', 'brand.ts', 'startup.ts', 'branding.ts', 'inbox.tsx', 'inbox-host.ts', 'inbox-background.ts', 'home-navigation.ts', 'markdown.tsx', 'dm-section.tsx', 'settings-banner.tsx', 'backups.tsx', 'performance.ts']) code[file] = (await transform(await fs.readFile(base + file, 'utf8') + (file === 'index.tsx' ? '\nexport { Performance };' : ''), { loader: file.endsWith('tsx') ? 'tsx' : 'ts', format: 'cjs' })).code;
         code.publicDmFixture = await fs.readFile('.cache/discord-public/dm-list-fixture.js', 'utf8').catch(() => '');
         const css = await fs.readFile(base + 'style.css', 'utf8');
         const window = new BrowserWindow({ show: false, width: 900, height: 600, webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false } });
@@ -40,7 +40,7 @@ app.whenReady().then(async () => {
                 './inbox-store': { subscribeInbox: () => () => {}, getInboxMessages: () => [{id:'welcome',timestamp:1700000000000,text:'Bienvenue sur PulseCord. Retrouvez ici les annonces et les mises à jour officielles de votre client.',read:true},{id:'update:fixture',timestamp:1700000010000,text:['Une mise à jour PulseCord est disponible.','','# PulseCord','','- Amélioration de la conversation locale.'].join(String.fromCharCode(10)),read:true}], getInboxUnread: () => 1, isInboxOpen: () => true, setInboxOpen: () => {}, loadInbox: async () => {}, stopInboxStore: () => {}, addInboxUpdate: () => {} },
                 '@api/PluginManager': {isPluginEnabled: () => pinsEnabled},
                 '@plugins/pinDms': {__esModule:true,default:{sections:[2,3,1]}},
-                '@api/Settings': { definePluginSettings: () => ({ store: {}, use: () => ({}) }) },
+                '@api/Settings': { definePluginSettings: definitions => { const store=Object.fromEntries(Object.entries(definitions).map(([key,option])=>[key,option.default]));return {store,use:()=>store}; } },
                 '@components/ErrorBoundary': { __esModule: true, default: { wrap: component => component } },
                 '@components/Icons': { MainSettingsIcon: () => null },
                 '@components/settings/tabs/BaseTab': { openSettingsTabModal: () => {} },
@@ -61,6 +61,7 @@ app.whenReady().then(async () => {
             const homeNavigation = load(code['home-navigation.ts'], name => mocks[name]);
             mocks['./home-navigation'] = homeNavigation;
             const ui = load(code['index.tsx'], name => { if (!(name in mocks)) throw Error('Unmocked import: ' + name); return mocks[name]; });
+            window.showPulsePerformancePreview=()=>document.querySelector('#root').replaceChildren(mocks['./settings-banner'].SettingsBanner(),ui.Performance());
             let dmSource = 'return new class Host {props=Object.freeze({privateChannelIds:Object.freeze(["real-dm"])});getSectionHeight=e=>24*(0!==e);renderSection=e=>{const h=document.createElement("h2");h.textContent="Messages privés";h.style.cssText="height:24px;margin:0;font-size:12px";return e.section===0?null:h;};getRowHeight=(section,row)=>44;}';
             for (const patch of ui.default.patches[0].replacement) {
                 const match = new RegExp(patch.match.source.replaceAll('\\\\i', '[A-Za-z_$][\\\\w$]*'));
@@ -186,6 +187,8 @@ app.whenReady().then(async () => {
         result.settingsBanner = await window.webContents.executeJavaScript('(() => { const image=document.querySelector(".pc-settings-banner img"),rect=image.getBoundingClientRect(); return image.naturalWidth>0 && rect.height<=180.01 && rect.right<=innerWidth && getComputedStyle(image).objectFit==="contain"; })()');
         if (!result.settingsBanner) throw Error('Settings banner must fit without cropping or overflow');
         await fs.writeFile('dist/qa/pulsecord-settings.png', (await window.webContents.capturePage()).toPNG());
+        await window.webContents.executeJavaScript('window.showPulsePerformancePreview()');
+        await fs.writeFile('dist/qa/pulsecord-performance.png', (await window.webContents.capturePage()).toPNG());
         await fs.writeFile('dist/qa/client-ui.json', JSON.stringify(result, null, 2)); app.exit(0);
     } catch (error) { console.error(error); app.exit(1); }
 });
