@@ -1,0 +1,49 @@
+const { app, BrowserWindow } = require('electron');
+const fs = require('node:fs/promises');
+const { createRequire } = require('node:module');
+const path = require('node:path');
+const assert = require('node:assert/strict');
+const tooling = createRequire(path.resolve('upstream/equicord/package.json'));
+app.disableHardwareAcceleration();
+app.whenReady().then(async () => {
+    try {
+        const font = 'data:font/woff2;base64,' + (await fs.readFile('packages/iosEmojis/apple-emoji.woff2')).toString('base64');
+        const { build } = require(process.env.PULSECORD_TEST_ESBUILD || tooling.resolve('esbuild'));
+        const built = await build({ entryPoints: ['packages/iosEmojis/index.ts'], bundle: true, write: false, format: 'cjs', external: ['@utils/*'], plugins: [{ name: 'font', setup(build) {
+            build.onResolve({ filter: /^\.\/font$/ }, () => ({ path: 'font', namespace: 'font' }));
+            build.onLoad({ filter: /.*/, namespace: 'font' }, () => ({ contents: `export const fontUrl=${JSON.stringify(font)};` }));
+        } }] });
+        const window = new BrowserWindow({ show: false, width: 720, height: 400, webPreferences: { sandbox: true, contextIsolation: true } });
+        await window.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent('<!doctype html><style>:root{--font-primary:Arial;--font-display:Arial;--font-headline:Arial;--font-code:monospace}body{padding:24px;background:#16161a;color:white;font-family:var(--font-primary)}img,.emojiItemImage__test{width:40px;height:40px}#text{font-size:32px;line-height:2}</style><h1>IOSEmojis</h1><div id="fixtures"></div><div id="text">😄 👍🏽 🇫🇷 👨‍👩‍👧‍👦 🫪</div>'));
+        const result = await window.webContents.executeJavaScript(`(async()=>{
+            const module={exports:{}};
+            new Function('require','module',${JSON.stringify(built.outputFiles[0].text)})(name=>name==='@utils/constants'?{Devs:{PulseCord:{}}}:{__esModule:true,default:p=>p},module);
+            const plugin=module.exports.default;
+            const fixtures=document.querySelector('#fixtures');
+            fixtures.innerHTML='<img id="message" src="/assets/discord.svg" alt=":smile:"><img id="tone" src="/assets/discord.svg" alt="👍🏽"><img id="custom" src="https://cdn.discordapp.com/emojis/1.png" alt=":smile:"><button data-type="emoji" data-name="grinning"><div id="picker" class="emojiItemImage__test"></div></button>';
+            plugin.start();
+            const content=id=>getComputedStyle(document.getElementById(id)).content;
+            const images={message:content('message'),tone:content('tone'),picker:content('picker'),custom:content('custom')};
+            const fonts=await document.fonts.load('32px "PulseCord iOS Emoji"','😄🇫🇷🫪');
+            const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');ctx.font='32px "PulseCord iOS Emoji"';
+            const widths={single:ctx.measureText('😄').width,flag:ctx.measureText('🇫🇷').width,family:ctx.measureText('👨‍👩‍👧‍👦').width};
+            window.stopIOSEmojis=()=>{plugin.stop();return {styleRemoved:!document.querySelector('#pc-ios-emojis'),message:content('message'),font:getComputedStyle(document.documentElement).getPropertyValue('--font-primary').trim(),text:document.querySelector('#text').textContent};};
+            return {images,fontLoaded:fonts.length>0,widths};
+        })()`);
+        assert.match(result.images.message, /1f604\.png/);
+        assert.match(result.images.tone, /1f44d-1f3fd\.png/);
+        assert.match(result.images.picker, /1f600\.png/);
+        assert.equal(result.images.custom, 'normal');
+        assert.equal(result.fontLoaded, true);
+        assert.ok(result.widths.flag < result.widths.single * 1.5, JSON.stringify(result.widths));
+        assert.ok(result.widths.family < result.widths.single * 1.5, JSON.stringify(result.widths));
+        await window.webContents.executeJavaScript(`Promise.all(${JSON.stringify([result.images.message,result.images.tone,result.images.picker].map(content=>content.slice(5,-2)))}.map(src=>new Promise((resolve,reject)=>{const image=new Image();image.onload=resolve;image.onerror=()=>reject(Error('Emoji image failed to load'));image.src=src;})))`);
+        await fs.mkdir('dist/qa', { recursive: true });
+        await fs.writeFile('dist/qa/ios-emojis.png', (await window.webContents.capturePage()).toPNG());
+        const stopped = await window.webContents.executeJavaScript('window.stopIOSEmojis()');
+        assert.equal(stopped.styleRemoved, true); assert.equal(stopped.message, 'normal'); assert.equal(stopped.font, 'Arial');
+        assert.equal(stopped.text, '😄 👍🏽 🇫🇷 👨‍👩‍👧‍👦 🫪');
+        console.log('IOSEmojis: messages, skin tones, picker, custom exclusions, font shaping and clean disable verified.');
+        app.exit(0);
+    } catch (error) { console.error(error); app.exit(1); }
+});

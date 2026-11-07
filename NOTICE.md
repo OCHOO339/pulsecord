@@ -9,6 +9,7 @@ PulseCord is an independent source overlay on Equicord, itself a fork of Vencord
 - Electron, React, esbuild and other dependencies retain their own licences; emitted LEGAL files are included in the payload. Electron-builder includes Electron notices in the application distribution.
 - Nightcord was studied as a product/reference only. No Nightcord code or visual assets were copied.
 - PulseCord logo: original artwork supplied by the user in pulse.png, copied without redrawing. Code licensing does not assign ownership of the user's artwork to upstream projects.
+- IOSEmojis: metadata from iamcal/emoji-data (MIT), pinned to e77759c296ed37beb0dbd63908b43d8619509c6d. Apple Color Emoji font converted from samuelngs/apple-emoji-ttf release macos-26-20260722-484daf4e (MIT tools). Apple emoji images and font designs are copyright Apple Inc.; they are not covered by PulseCord's GPL or the tools' MIT license. emoji-data states Apple images are not licensed for commercial usage. Exact source, conversion and asset hash: packages/iosEmojis/README.md.
 
 When distributing binaries, provide the complete corresponding source, exact upstream revisions, modifications, build scripts and licence text. Official releases and their corresponding source archives are published at https://github.com/OCHOO339/pulsecord/releases. The maintained source repository is https://github.com/OCHOO339/pulsecord. The complete distribution is conveyed under GPL version 3; individual GPL-3.0-or-later notices retain their stated permissions for those files.
 
