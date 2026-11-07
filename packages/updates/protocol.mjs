@@ -5,9 +5,10 @@ export function updateManifestUrl(base, platform, arch) {
     const url = new URL(base);
     if (url.protocol !== 'https:') throw Error('Update feeds require HTTPS');
     if (platform === 'win32' && arch === 'x64') return url.href;
-    if (platform !== 'linux' || arch !== 'x64') throw Error('Unsupported PulseCord update platform');
-    url.pathname = url.pathname.replace(/pulsecord-update\.json$/, 'pulsecord-update-linux-x64.json');
-    if (!url.pathname.endsWith('/pulsecord-update-linux-x64.json')) throw Error('Invalid Linux update feed');
+    if (!(platform === 'linux' && arch === 'x64') && !(platform === 'darwin' && ['x64', 'arm64'].includes(arch))) throw Error('Unsupported PulseCord update platform');
+    const name = `pulsecord-update-${platform}-${arch}.json`;
+    url.pathname = url.pathname.replace(/pulsecord-update\.json$/, name);
+    if (!url.pathname.endsWith('/' + name)) throw Error('Invalid platform update feed');
     return url.href;
 }
 export function bundleId(files) {

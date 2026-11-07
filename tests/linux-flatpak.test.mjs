@@ -59,6 +59,8 @@ test('Linux and Windows update feeds stay distinct and require a supported platf
     assert.equal(updateManifestUrl(base,'win32','x64'),base);
     assert.ok(updateManifestUrl(base,'linux','x64').endsWith('pulsecord-update-linux-x64.json'));
     assert.throws(()=>updateManifestUrl(base,'linux','arm64'));
+    assert.ok(updateManifestUrl(base,'darwin','x64').endsWith('pulsecord-update-darwin-x64.json'));
+    assert.ok(updateManifestUrl(base,'darwin','arm64').endsWith('pulsecord-update-darwin-arm64.json'));
 });
 test('Flatpak private resources support install, native updates and exact restoration',async t=>{
     const f=await fixture(t);await linux.prepareFlatpakTarget(f,'install');

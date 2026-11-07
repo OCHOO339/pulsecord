@@ -6,7 +6,7 @@ const config = JSON.parse(await readFile('updates.json', 'utf8'));
 const platform = process.argv.find(arg => arg.startsWith('--platform='))?.slice(11) || process.platform;
 const arch = process.argv.find(arg => arg.startsWith('--arch='))?.slice(7) || process.arch;
 const feed = updateManifestUrl(config.manifestUrl, platform, arch);
-const localManifest = process.argv.find(arg => arg.startsWith('--manifest='))?.slice(11) || `release/updates/${platform === 'linux' ? 'pulsecord-update-linux-x64.json' : 'pulsecord-update.json'}`;
+const localManifest = process.argv.find(arg => arg.startsWith('--manifest='))?.slice(11) || `release/updates/${platform === 'win32' ? 'pulsecord-update.json' : `pulsecord-update-${platform}-${arch}.json`}`;
 const expected = verifyRelease(JSON.parse(await readFile(localManifest, 'utf8')), config.publicKey, platform, arch);
 let lastError;
 for (let attempt = 0; attempt < 15; attempt++) {

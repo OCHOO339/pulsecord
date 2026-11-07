@@ -22,6 +22,8 @@ jobs:
             platform: windows
           - os: ubuntu-24.04
             platform: linux
+          - os: macos-15-intel
+            platform: macos
     runs-on: ${{ matrix.os }}
     env:
       PULSECORD_RELEASE_NOTES: .cache/release-notes.md
@@ -51,10 +53,10 @@ jobs:
           Xvfb :99 -screen 0 1280x900x24 -nolisten tcp >/tmp/pulsecord-xvfb.log 2>&1 &
       - name: Prepare toolchain
         run: |
-          npm install -g corepack@0.35.0
+          npm install --prefix .cache/corepack --no-package-lock --ignore-scripts corepack@0.35.0
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          corepack enable
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $toolBin = Join-Path $PWD '.cache/corepack/node_modules/.bin'
+          $toolBin | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
       - name: Generate release notes
         run: node scripts/release-notes.mjs
       - name: Prepare publisher key
@@ -81,6 +83,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/run-installer.mjs --packaged-test
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ('${{ matrix.platform }}' -eq 'macos') {
+            node scripts/test-macos.mjs
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
       - name: Verify a real isolated Discord Flatpak and its relaunch
         if: runner.os == 'Linux'
         shell: bash
@@ -94,6 +100,10 @@ jobs:
         run: |
           pnpm publish:prepare
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ('${{ matrix.platform }}' -eq 'macos') {
+            node scripts/publish-update.mjs --arch=arm64
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
           if ('${{ matrix.platform }}' -eq 'windows') {
             pnpm package:source
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -107,13 +117,15 @@ jobs:
             release/PulseCord Installer.exe
             release/PulseCord Installer-linux-x64.AppImage
             release/PulseCord Installer-linux-x64.tar.gz
+            release/PulseCord Installer-macos-universal.dmg
             release/PulseCord-source.zip
             release/RELEASE-NOTES.md
             release/updates/*
       - name: Remove temporary signing key
         if: always()
         run: |
-          [IO.File]::Delete((Join-Path $env:GITHUB_WORKSPACE '.pulsecord-publisher/private-key.pem'))
+          $keyFile = Join-Path $env:GITHUB_WORKSPACE '.pulsecord-publisher/private-key.pem'
+          if (Test-Path -LiteralPath $keyFile) { [IO.File]::Delete($keyFile) }
 
   publish:
     needs: build
@@ -128,12 +140,14 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: release-artifacts
-      - name: Publish one verified release for Windows and Linux
+      - name: Publish one verified release for Windows, Linux and macOS
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: node scripts/publish-multiplatform.mjs
-      - name: Verify both public signed updates
+      - name: Verify all public signed updates
         run: |
           node scripts/verify-published-update.mjs --platform=win32 --arch=x64 --manifest=release-artifacts/windows/updates/pulsecord-update.json
           node scripts/verify-published-update.mjs --platform=linux --arch=x64 --manifest=release-artifacts/linux/updates/pulsecord-update-linux-x64.json
+          node scripts/verify-published-update.mjs --platform=darwin --arch=x64 --manifest=release-artifacts/macos/updates/pulsecord-update-darwin-x64.json
+          node scripts/verify-published-update.mjs --platform=darwin --arch=arm64 --manifest=release-artifacts/macos/updates/pulsecord-update-darwin-arm64.json

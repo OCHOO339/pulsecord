@@ -190,7 +190,7 @@ app.whenReady().then(async () => {
             await new Promise(resolve => setTimeout(resolve, 300));
             await fs.writeFile(path.resolve('dist/qa/installer.png'), (await window.webContents.capturePage()).toPNG());
             await fs.writeFile(path.resolve('dist/qa/installer-smoke.json'), JSON.stringify(result, null, 2));
-            if (app.isPackaged) await fs.writeFile(path.resolve('dist/qa/executable-icon.png'), (await app.getFileIcon(process.execPath, { size: 'large' })).toPNG());
+            if (app.isPackaged && process.platform === 'win32') await fs.writeFile(path.resolve('dist/qa/executable-icon.png'), (await app.getFileIcon(process.execPath, { size: 'large' })).toPNG());
             app.exit(0);
         } catch (e) { console.error(e); app.exit(1); }
     }

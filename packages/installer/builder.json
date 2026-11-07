@@ -7,6 +7,6 @@
   "extraMetadata": { "main": "packages/installer/main.cjs" },
   "extraResources": [{ "from": "dist/bundle", "to": "bundle" }],
   "win": { "target": "portable", "icon": "build/icon.ico", "signAndEditExecutable": true },
-  "linux": { "target": ["AppImage", "tar.gz"], "artifactName": "PulseCord Installer-linux-${arch}.${ext}", "category": "Utility", "icon": "build/icon.png", "executableName": "pulsecord-installer" },
-  "mac": { "target": "dmg", "identity": null }
+  "linux": { "target": ["AppImage", "tar.gz"], "artifactName": "PulseCord Installer-linux-x64.${ext}", "category": "Utility", "icon": "build/icon.png", "executableName": "pulsecord-installer" },
+  "mac": { "target": [{ "target": "dmg", "arch": ["universal"] }], "artifactName": "PulseCord Installer-macos-universal.${ext}", "icon": "build/icon.png", "identity": "-", "hardenedRuntime": false }
 }

@@ -1,5 +1,7 @@
 # PulseCord
 
+- Workflow Windows, Ubuntu et macOS avec publication des installateurs EXE, AppImage, archive Linux et DMG universel Intel/Apple Silicon ; contrôle du paquet macOS et flux de mise à jour signés par architecture.
+
 - Support Linux x64 pour Discord Flatpak : installateur AppImage et archive portable, copie privée du runtime, lanceur dans le menu des applications et conservation du lanceur officiel Flatpak.
 - Flux de mises à jour signées distincts pour Windows et Linux, avec publication commune après validation des deux plateformes.
 

@@ -22,7 +22,7 @@ for (const scenario of ['valid', 'corrupt', 'stale']) {
             return { payload: payload.toString('base64'), signature: sign(null, payload, keys.privateKey).toString('base64') };
         };
         await mkdir(join(root, 'release/updates'), { recursive: true });
-        const manifestName = process.platform === 'linux' ? 'pulsecord-update-linux-x64.json' : 'pulsecord-update.json';
+        const manifestName = process.platform === 'win32' ? 'pulsecord-update.json' : `pulsecord-update-${process.platform}-${process.arch}.json`;
         await writeFile(join(root, 'updates.json'), JSON.stringify({ manifestUrl: 'https://example.com/pulsecord-update.json', publicKey: keys.publicKey.export({ type: 'spki', format: 'pem' }) }));
         await writeFile(join(root, 'release/updates', manifestName), JSON.stringify(envelope(release)));
         const remote = envelope(scenario === 'stale' ? { ...release, bundleId: 'b'.repeat(64) } : release);

@@ -7,6 +7,25 @@ import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import lifecycle from '../packages/installer/discord-process.cjs';
 
+test('macOS shutdown terminates only the selected application executable',{skip:process.platform!=='darwin',timeout:45000},async()=>{
+    const root=await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(),'pulsecord-mac-process-')));
+    const children=[];
+    try{
+        for(const name of ['selected','unrelated']){
+            const contents=path.join(root,name+'.app','Contents');await fs.mkdir(path.join(contents,'MacOS'),{recursive:true});
+            await fs.mkdir(path.join(contents,'Resources'));
+            const executable=path.join(contents,'MacOS','Discord');await fs.copyFile(process.execPath,executable);
+            const child=spawn(executable,['-e','process.stdout.write("ready");setInterval(()=>{},1000)'],{stdio:['ignore','pipe','ignore']});children.push(child);await once(child.stdout,'data');
+        }
+        const exited=once(children[0],'exit');
+        const session=await lifecycle.stop({resources:path.join(root,'selected.app','Contents','Resources')});await exited;
+        assert.equal(session.wasRunning,true);assert.equal(children[1].exitCode,null);assert.doesNotThrow(()=>process.kill(children[1].pid,0));
+    }finally{
+        for(const child of children)if(child.exitCode===null&&child.signalCode===null){const exited=once(child,'exit');child.kill();await exited;}
+        await fs.rm(root,{recursive:true,force:true});
+    }
+});
+
 test('Windows shutdown terminates only the selected executable path', { skip: process.platform !== 'win32', timeout: 45000 }, async () => {
     const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'pulsecord-process-test-')));
     const children = [];

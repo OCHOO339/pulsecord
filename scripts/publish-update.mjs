@@ -8,6 +8,8 @@ const { zipSync } = require('fflate');
 const stamp = JSON.parse(await readFile('upstream/equicord/dist/pulsecord-build.json', 'utf8'));
 if (stamp.sourceHash !== sourceFingerprint()) throw Error('Source changed since the last successful build. Rebuild before publishing.');
 const config = JSON.parse(await readFile('updates.json', 'utf8'));
+const arch = process.argv.find(arg => arg.startsWith('--arch='))?.slice(7) || process.arch;
+if (arch !== process.arch && !(process.platform === 'darwin' && ['x64', 'arm64'].includes(arch))) throw Error('Invalid update architecture override');
 const privateKey = createPrivateKey(await readFile(process.env.PULSECORD_SIGNING_KEY || '.pulsecord-publisher/private-key.pem'));
 if (createPublicKey(privateKey).export({ type: 'spki', format: 'pem' }) !== config.publicKey) throw Error('Publisher key does not match the key trusted by the client');
 const manifest = JSON.parse(await readFile('dist/bundle/bundle.json', 'utf8'));
@@ -18,11 +20,11 @@ for (const name of Object.keys(manifest.files)) {
     files[name] = new Uint8Array(bytes);
 }
 const id = bundleId(manifest.files);
-const filename = process.platform === 'linux' ? `pulsecord-linux-${process.arch}-${id}.zip` : `pulsecord-${id}.zip`;
+const filename = process.platform === 'win32' ? `pulsecord-${id}.zip` : `pulsecord-${process.platform}-${arch}-${id}.zip`;
 const zip = zipSync(files, { level: 6 });
-const release = { format: 1, version: manifest.version, platform: process.platform, arch: process.arch, bundleId: id, bundleUrl: new URL(filename, updateManifestUrl(config.manifestUrl, process.platform, process.arch)).href, sha256: createHash('sha256').update(zip).digest('hex'), size: zip.length, changelog: (await readFile(process.env.PULSECORD_RELEASE_NOTES || 'CHANGELOG.md', 'utf8')).slice(0, 8000) };
+const release = { format: 1, version: manifest.version, platform: process.platform, arch, bundleId: id, bundleUrl: new URL(filename, updateManifestUrl(config.manifestUrl, process.platform, arch)).href, sha256: createHash('sha256').update(zip).digest('hex'), size: zip.length, changelog: (await readFile(process.env.PULSECORD_RELEASE_NOTES || 'CHANGELOG.md', 'utf8')).slice(0, 8000) };
 const payload = Buffer.from(JSON.stringify(release));
 await mkdir('release/updates', { recursive: true });
 await writeFile(`release/updates/${filename}`, zip);
-await writeFile(`release/updates/${process.platform === 'linux' ? 'pulsecord-update-linux-x64.json' : 'pulsecord-update.json'}`, JSON.stringify({ payload: payload.toString('base64'), signature: sign(null, payload, privateKey).toString('base64') }, null, 2));
+await writeFile(`release/updates/${process.platform === 'win32' ? 'pulsecord-update.json' : `pulsecord-update-${process.platform}-${arch}.json`}`, JSON.stringify({ payload: payload.toString('base64'), signature: sign(null, payload, privateKey).toString('base64') }, null, 2));
 console.log('Signed update ready in release/updates. Publish both files in the latest GitHub Release.');

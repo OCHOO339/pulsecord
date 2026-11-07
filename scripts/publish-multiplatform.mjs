@@ -8,10 +8,10 @@ const repo=process.env.GH_REPO||'OCHOO339/pulsecord';
 if(repo!=='OCHOO339/pulsecord')throw Error('Unexpected publication repository');
 const gh=args=>execFileSync('gh',args,{encoding:'utf8',stdio:['ignore','pipe','inherit'],maxBuffer:4*1024*1024,windowsHide:true});
 const config=JSON.parse(await readFile('updates.json','utf8'));
-const assets=['release-artifacts/windows/PulseCord Installer.exe','release-artifacts/windows/PulseCord-source.zip','release-artifacts/linux/PulseCord Installer-linux-x64.AppImage','release-artifacts/linux/PulseCord Installer-linux-x64.tar.gz'];
-for(const [platform,folder,name] of [['win32','windows','pulsecord-update.json'],['linux','linux','pulsecord-update-linux-x64.json']]){
+const assets=['release-artifacts/windows/PulseCord Installer.exe','release-artifacts/windows/PulseCord-source.zip','release-artifacts/linux/PulseCord Installer-linux-x64.AppImage','release-artifacts/linux/PulseCord Installer-linux-x64.tar.gz','release-artifacts/macos/PulseCord Installer-macos-universal.dmg'];
+for(const [platform,arch,folder,name] of [['win32','x64','windows','pulsecord-update.json'],['linux','x64','linux','pulsecord-update-linux-x64.json'],['darwin','x64','macos','pulsecord-update-darwin-x64.json'],['darwin','arm64','macos','pulsecord-update-darwin-arm64.json']]){
     const manifest=`release-artifacts/${folder}/updates/${name}`;
-    const release=verifyRelease(JSON.parse(await readFile(manifest,'utf8')),config.publicKey,platform,'x64');
+    const release=verifyRelease(JSON.parse(await readFile(manifest,'utf8')),config.publicKey,platform,arch);
     const archive=`release-artifacts/${folder}/updates/${basename(new URL(release.bundleUrl).pathname)}`;
     verifyDownload(await readFile(archive),release);assets.push(manifest,archive);
 }
@@ -23,4 +23,4 @@ const url=gh(['release','create',tag,...assets.map(file=>resolve(file)),'--repo'
 const metadata=JSON.parse(gh(['api',`repos/${repo}/releases/tags/${tag}`]));
 for(const [name,entry] of expected){const asset=metadata.assets.find(asset=>asset.name===name);if(!asset||asset.size!==entry.size||asset.digest!==entry.digest)throw Error('Uploaded release asset verification failed: '+name);}
 gh(['release','edit',tag,'--repo',repo,'--draft=false','--latest']);
-console.log('Published Windows and Linux release: '+url);
+console.log('Published Windows, Linux and macOS release: '+url);

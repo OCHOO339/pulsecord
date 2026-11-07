@@ -10,6 +10,8 @@ Les mises à jour suivantes sont disponibles dans **PulseCord → Updates**. Le 
 
 Pour **Discord Flatpak sous Linux x64**, utiliser `PulseCord.Installer-linux-x64.AppImage` ou l'archive portable `.tar.gz` de la même release. Le lanceur PulseCord apparaît dans le menu des applications. [Installation Linux et fonctionnement Flatpak](docs/LINUX.md).
 
+Le workflow produit aussi **PulseCord.Installer-macos-universal.dmg**, contenant les architectures Intel et Apple Silicon. Le DMG est signé ad hoc et n'est pas notarié par Apple ; macOS peut demander une autorisation d'ouverture dans Réglages Système → Confidentialité et sécurité.
+
 ## Lanceur et sauvegardes
 
 Le raccourci **PulseCord** du Bureau lance le client avec réparation après les mises à jour Discord. Dans les paramètres, **Sauvegarde et restauration** enregistre la configuration dans `Documents/PulseCord Backups`, et **Performance** propose le mode économie en arrière-plan. La bannière Pulse est affichée entière dans les paramètres. [Fonctionnement et limites](docs/launcher-backups-performance.md).
@@ -31,7 +33,7 @@ corepack pnpm package:source
 
 Les sources PulseCord se trouvent dans `packages`. La préparation récupère les révisions de `upstream.lock.json` dans `upstream/` et applique les modifications. L’installateur est produit dans `release/PulseCord Installer.exe`. L’archive `release/PulseCord-source.zip` comprend les sources correspondantes et les sources amont épinglées.
 
-La compilation, le contrôle TypeScript et les tests sur fixtures ne garantissent pas la compatibilité avec chaque mise à jour de Discord. La validation Linux comprend une installation Flatpak isolée dans GitHub Actions ; les autres formats Discord Linux et macOS ne sont pas couverts.
+La compilation, le contrôle TypeScript et les tests sur fixtures ne garantissent pas la compatibilité avec chaque mise à jour de Discord. La validation Linux comprend une installation Flatpak isolée dans GitHub Actions ; les autres formats Discord Linux ne sont pas couverts. Le job macOS teste le DMG empaqueté et vérifie ses deux architectures et ses signatures ad hoc.
 
 ## Publication
 
