@@ -1,7 +1,7 @@
 import { readFile, readdir, mkdir, writeFile } from 'node:fs/promises';
 import { createHash, sign, createPrivateKey, createPublicKey } from 'node:crypto';
 import { createRequire } from 'node:module';
-import { bundleId } from '../packages/updates/protocol.mjs';
+import { bundleId, updateManifestUrl } from '../packages/updates/protocol.mjs';
 import { sourceFingerprint } from './source-fingerprint.mjs';
 const require = createRequire(new URL('../upstream/equicord/package.json', import.meta.url));
 const { zipSync } = require('fflate');
@@ -18,11 +18,11 @@ for (const name of Object.keys(manifest.files)) {
     files[name] = new Uint8Array(bytes);
 }
 const id = bundleId(manifest.files);
-const filename = `pulsecord-${id}.zip`;
+const filename = process.platform === 'linux' ? `pulsecord-linux-${process.arch}-${id}.zip` : `pulsecord-${id}.zip`;
 const zip = zipSync(files, { level: 6 });
-const release = { format: 1, version: manifest.version, platform: process.platform, arch: process.arch, bundleId: id, bundleUrl: new URL(filename, config.manifestUrl).href, sha256: createHash('sha256').update(zip).digest('hex'), size: zip.length, changelog: (await readFile(process.env.PULSECORD_RELEASE_NOTES || 'CHANGELOG.md', 'utf8')).slice(0, 8000) };
+const release = { format: 1, version: manifest.version, platform: process.platform, arch: process.arch, bundleId: id, bundleUrl: new URL(filename, updateManifestUrl(config.manifestUrl, process.platform, process.arch)).href, sha256: createHash('sha256').update(zip).digest('hex'), size: zip.length, changelog: (await readFile(process.env.PULSECORD_RELEASE_NOTES || 'CHANGELOG.md', 'utf8')).slice(0, 8000) };
 const payload = Buffer.from(JSON.stringify(release));
 await mkdir('release/updates', { recursive: true });
 await writeFile(`release/updates/${filename}`, zip);
-await writeFile('release/updates/pulsecord-update.json', JSON.stringify({ payload: payload.toString('base64'), signature: sign(null, payload, privateKey).toString('base64') }, null, 2));
+await writeFile(`release/updates/${process.platform === 'linux' ? 'pulsecord-update-linux-x64.json' : 'pulsecord-update.json'}`, JSON.stringify({ payload: payload.toString('base64'), signature: sign(null, payload, privateKey).toString('base64') }, null, 2));
 console.log('Signed update ready in release/updates. Publish both files in the latest GitHub Release.');

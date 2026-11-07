@@ -142,7 +142,12 @@ cpSync('packages/pulsecord/nativeBrand.ts', base + 'src/main/pulsecordBrand.ts')
 cpSync('packages/pulsecord/startup-cache.ts', base + 'src/main/pulsecordStartupCache.ts');
 cpSync('packages/backup/core.mjs', base + 'src/main/pulsecordBackupCore.mjs');
 cpSync('packages/installer/launcher-state.cjs', base + 'src/main/pulsecordLauncherState.cjs');
-cpSync('packages/installer/core.mjs', base + 'src/main/pulsecordUpdateCore.mjs');
+// The running updater needs installation integrity/activation, not installer
+// discovery or Flatpak host commands. Keep those out of the client bundle.
+const installerCore = readFileSync('packages/installer/core.mjs', 'utf8');
+const discoveryStart = installerCore.indexOf('\nexport async function discover(');
+if (discoveryStart < 0) throw Error('Missing installer discovery boundary');
+writeFileSync(base + 'src/main/pulsecordUpdateCore.mjs', installerCore.slice(0, discoveryStart) + '\n');
 cpSync('packages/updates/protocol.mjs', base + 'src/main/pulsecordUpdateProtocol.mjs');
 const logo = `data:image/png;base64,${readFileSync('assets/pulsecord-avatar.png').toString('base64')}`;
 const splashLogo = `data:image/png;base64,${readFileSync('assets/pulsecord-splash.png').toString('base64')}`;

@@ -1,5 +1,8 @@
 # PulseCord
 
+- Support Linux x64 pour Discord Flatpak : installateur AppImage et archive portable, copie privée du runtime, lanceur dans le menu des applications et conservation du lanceur officiel Flatpak.
+- Flux de mises à jour signées distincts pour Windows et Linux, avec publication commune après validation des deux plateformes.
+
 - Badges Pulse Dev et Pulse User sur les profils, messages et listes de membres ; inscription volontaire et validation via le registre GitHub, avec cache local de six heures.
 
 - Optimisation de l'interface pendant les jeux et le vocal : règles CSS des emojis remplacées par une règle commune, traitement des mutations ciblé et suspendu sans focus, lectures et écritures de polices regroupées.

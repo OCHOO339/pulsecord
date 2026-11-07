@@ -13,10 +13,19 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  windows-release:
-    runs-on: windows-latest
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows
+          - os: ubuntu-24.04
+            platform: linux
+    runs-on: ${{ matrix.os }}
     env:
       PULSECORD_RELEASE_NOTES: .cache/release-notes.md
+      DISPLAY: ':99'
     defaults:
       run:
         shell: pwsh
@@ -30,7 +39,23 @@ jobs:
           runtime: node@24.19.0
           require-lockfile: true
           cache: true
-      - name: Generate release notes from pushed commits
+      - name: Prepare Linux graphical and Flatpak test environment
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgtk-3-0 libnss3 libasound2t64 libgbm1 libfuse2t64 flatpak dbus-x11 desktop-file-utils
+          if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+          Xvfb :99 -screen 0 1280x900x24 -nolisten tcp >/tmp/pulsecord-xvfb.log 2>&1 &
+      - name: Prepare toolchain
+        run: |
+          npm install -g corepack@0.35.0
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          corepack enable
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Generate release notes
         run: node scripts/release-notes.mjs
       - name: Prepare publisher key
         env:
@@ -38,8 +63,6 @@ jobs:
         run: node scripts/setup-updates.mjs
       - name: Prepare pinned fork
         run: |
-          corepack enable
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node scripts/prepare.mjs --fetch-only
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           pnpm --dir upstream/equicord install --frozen-lockfile
@@ -52,29 +75,65 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           pnpm test
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Package installer, signed update and corresponding source
+      - name: Package and smoke-test the installer
         run: |
           pnpm package:installer
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node scripts/run-installer.mjs --packaged-test
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify a real isolated Discord Flatpak and its relaunch
+        if: runner.os == 'Linux'
+        shell: bash
+        env:
+          PULSECORD_REAL_FLATPAK_TEST: '1'
+        run: |
+          flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user --noninteractive --assumeyes flathub com.discordapp.Discord
+          dbus-run-session -- node scripts/test-flatpak.mjs
+      - name: Sign update and archive source
+        run: |
           pnpm publish:prepare
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          pnpm package:source
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Publish official release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          $releaseTag = 'pulsecord-build-' + $env:GITHUB_RUN_NUMBER + '-' + $env:GITHUB_RUN_ATTEMPT
-          $archive = node --input-type=module -e "import {readFileSync} from 'node:fs'; const envelope=JSON.parse(readFileSync('release/updates/pulsecord-update.json')); const release=JSON.parse(Buffer.from(envelope.payload,'base64')); console.log('release/updates/'+new URL(release.bundleUrl).pathname.split('/').pop());"
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          gh release create $releaseTag 'release/PulseCord Installer.exe' 'release/PulseCord-source.zip' 'release/updates/pulsecord-update.json' $archive --draft --title 'PulseCord' --notes-file $env:PULSECORD_RELEASE_NOTES --target $env:GITHUB_SHA
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          gh release edit $releaseTag --draft=false --latest
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Verify public signed update and download
-        run: node scripts/verify-published-update.mjs
+          if ('${{ matrix.platform }}' -eq 'windows') {
+            pnpm package:source
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            Copy-Item .cache/release-notes.md release/RELEASE-NOTES.md
+          }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}
+          if-no-files-found: error
+          path: |
+            release/PulseCord Installer.exe
+            release/PulseCord Installer-linux-x64.AppImage
+            release/PulseCord Installer-linux-x64.tar.gz
+            release/PulseCord-source.zip
+            release/RELEASE-NOTES.md
+            release/updates/*
       - name: Remove temporary signing key
         if: always()
         run: |
           [IO.File]::Delete((Join-Path $env:GITHUB_WORKSPACE '.pulsecord-publisher/private-key.pem'))
+
+  publish:
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+      - name: Publish one verified release for Windows and Linux
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: node scripts/publish-multiplatform.mjs
+      - name: Verify both public signed updates
+        run: |
+          node scripts/verify-published-update.mjs --platform=win32 --arch=x64 --manifest=release-artifacts/windows/updates/pulsecord-update.json
+          node scripts/verify-published-update.mjs --platform=linux --arch=x64 --manifest=release-artifacts/linux/updates/pulsecord-update-linux-x64.json

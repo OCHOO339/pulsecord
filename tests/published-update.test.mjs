@@ -22,14 +22,15 @@ for (const scenario of ['valid', 'corrupt', 'stale']) {
             return { payload: payload.toString('base64'), signature: sign(null, payload, keys.privateKey).toString('base64') };
         };
         await mkdir(join(root, 'release/updates'), { recursive: true });
-        await writeFile(join(root, 'updates.json'), JSON.stringify({ manifestUrl: 'https://example.com/manifest.json', publicKey: keys.publicKey.export({ type: 'spki', format: 'pem' }) }));
-        await writeFile(join(root, 'release/updates/pulsecord-update.json'), JSON.stringify(envelope(release)));
+        const manifestName = process.platform === 'linux' ? 'pulsecord-update-linux-x64.json' : 'pulsecord-update.json';
+        await writeFile(join(root, 'updates.json'), JSON.stringify({ manifestUrl: 'https://example.com/pulsecord-update.json', publicKey: keys.publicKey.export({ type: 'spki', format: 'pem' }) }));
+        await writeFile(join(root, 'release/updates', manifestName), JSON.stringify(envelope(release)));
         const remote = envelope(scenario === 'stale' ? { ...release, bundleId: 'b'.repeat(64) } : release);
         const preload = join(root, 'fetch.mjs');
         await writeFile(preload, `
             globalThis.setTimeout = callback => { queueMicrotask(callback); };
             globalThis.fetch = async url => {
-                if (new URL(url).pathname.endsWith('/manifest.json')) {
+                if (new URL(url).pathname.endsWith('/${manifestName}')) {
                     if (!new URL(url).searchParams.has('_pulsecord_check')) throw Error('Manifest URL must bypass the cache');
                     return {ok:true,json:async()=>(${JSON.stringify(remote)})};
                 }

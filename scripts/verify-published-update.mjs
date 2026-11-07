@@ -1,17 +1,21 @@
 // Verify the public update exactly as a client would after a release is published.
 import { readFile } from 'node:fs/promises';
-import { verifyRelease, verifyDownload } from '../packages/updates/protocol.mjs';
+import { verifyRelease, verifyDownload, updateManifestUrl } from '../packages/updates/protocol.mjs';
 
 const config = JSON.parse(await readFile('updates.json', 'utf8'));
-const expected = verifyRelease(JSON.parse(await readFile('release/updates/pulsecord-update.json', 'utf8')), config.publicKey, process.platform, process.arch);
+const platform = process.argv.find(arg => arg.startsWith('--platform='))?.slice(11) || process.platform;
+const arch = process.argv.find(arg => arg.startsWith('--arch='))?.slice(7) || process.arch;
+const feed = updateManifestUrl(config.manifestUrl, platform, arch);
+const localManifest = process.argv.find(arg => arg.startsWith('--manifest='))?.slice(11) || `release/updates/${platform === 'linux' ? 'pulsecord-update-linux-x64.json' : 'pulsecord-update.json'}`;
+const expected = verifyRelease(JSON.parse(await readFile(localManifest, 'utf8')), config.publicKey, platform, arch);
 let lastError;
 for (let attempt = 0; attempt < 15; attempt++) {
     try {
-        const manifestUrl = new URL(config.manifestUrl);
+        const manifestUrl = new URL(feed);
         manifestUrl.searchParams.set('_pulsecord_check', `${Date.now()}-${attempt}`);
         const response = await fetch(manifestUrl.href, { cache: 'no-store', headers: { 'User-Agent': 'PulseCord Publisher', 'Cache-Control': 'no-cache' }, signal: AbortSignal.timeout(30000) });
         if (!response.ok) throw Error(`Public manifest returned ${response.status}`);
-        const release = verifyRelease(await response.json(), config.publicKey, process.platform, process.arch);
+        const release = verifyRelease(await response.json(), config.publicKey, platform, arch);
         if (release.bundleId !== expected.bundleId) throw Error('The public update does not match this build yet');
         const payload = await fetch(release.bundleUrl, { signal: AbortSignal.timeout(60000) });
         if (!payload.ok) throw Error(`Public bundle returned ${payload.status}`);

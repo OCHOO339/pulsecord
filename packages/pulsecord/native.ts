@@ -6,7 +6,7 @@
 import { DATA_DIR } from "@main/utils/constants";
 import { brand } from "@pulsecord/brand";
 import { activateUpdate, getInstallation } from "@pulsecord/update-core";
-import { bundleId, isOlder, MAX_BUNDLE_BYTES, verifyDownload, verifyRelease } from "@pulsecord/update-protocol";
+import { bundleId, isOlder, MAX_BUNDLE_BYTES, updateManifestUrl, verifyDownload, verifyRelease } from "@pulsecord/update-protocol";
 import { app } from "electron";
 import { unzipSync } from "fflate";
 import { promises as fs } from "original-fs";
@@ -66,7 +66,7 @@ export async function checkForUpdates(_event: Electron.IpcMainInvokeEvent): Prom
     checking = (async () => {
         state = { ...current, phase: "checking" };
         try {
-            const bytes = await download(brand.updates.manifestUrl, 128000, true);
+            const bytes = await download(updateManifestUrl(brand.updates.manifestUrl, process.platform, process.arch), 128000, true);
             const release: Release = verifyRelease(JSON.parse(bytes.toString("utf8")), brand.updates.publicKey, process.platform, process.arch);
             const installed = await getInstallation(resources);
             if (isOlder(release.version, installed.version || brand.version)) throw Error("The release server offered an older build");
@@ -115,11 +115,15 @@ export async function applyUpdate(_event: Electron.IpcMainInvokeEvent): Promise<
                 catch (error) { console.warn("[PulseCord] Could not refresh launcher recovery bundle", error); }
             }
         }
+        if (process.platform === "linux" && basename(resolve(resources, "../..")) === "runtimes" && /^[a-f0-9]{64}$/.test(basename(resolve(resources, "..")))) {
+            await saveBundle(stage, join(resolve(resources, "../../.."), "bundles")).catch(error => console.warn("[PulseCord] Could not refresh Linux recovery bundle", error));
+        }
         if ((await getInstallation(resources)).current !== release.bundleId) throw Error("Le nouveau build n’a pas été activé. Discord ne sera pas redémarré.");
         // Discard inherited launch arguments, which can point at an older app
         // archive or start a Squirrel maintenance invocation instead of Discord.
         // Schedule relaunch here so a scheduling failure reaches the renderer.
-        app.relaunch({ execPath: process.execPath, args: [] });
+        const flatpakId = process.platform === "linux" ? process.env?.FLATPAK_ID : undefined;
+        app.relaunch({ execPath: flatpakId && /^com\.discordapp\.Discord(?:PTB|Canary)?$/.test(flatpakId) ? `/app/bin/${flatpakId}` : process.execPath, args: [] });
         state = { ...state, phase: "restarting" };
         setTimeout(() => { app.exit(0); }, 700);
         return { ...state };

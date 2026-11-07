@@ -25,6 +25,7 @@ async function runOperations({ core, action, targets, bundle, loader, progress, 
                 session = await lifecycle.stop(target);
                 report('Discord fermé.', .05);
             }
+            if (core.prepareTarget) await core.prepareTarget(target, action);
             const result = action === 'install' || action === 'repair'
                 ? await core.install(target.resources, bundle, loader, notify)
                 : action === 'uninstall' ? await core.uninstall(target.resources, notify) : await core.rollback(target.resources);

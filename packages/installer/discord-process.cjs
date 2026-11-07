@@ -34,6 +34,8 @@ Write-Output $discordProcesses.Count`;
 }
 
 async function stop(target) {
+    if (process.platform === 'linux' && target.kind === 'flatpak') return require('./linux-flatpak.cjs').stopFlatpak(target);
+    if (process.platform === 'linux') throw Error('Cette version Linux prend en charge Discord Flatpak. Sélectionnez son installation détectée automatiquement.');
     if (process.platform !== 'win32') throw Error('La fermeture automatique est actuellement disponible sous Windows.');
     const executable = await findExecutable(target.resources);
     const script = Buffer.from(stopScript(executable), 'utf16le').toString('base64');
@@ -42,6 +44,7 @@ async function stop(target) {
 }
 
 async function start(session) {
+    if (process.platform === 'linux' && session.flatpakId) return require('./linux-flatpak.cjs').startFlatpak(session);
     await new Promise((resolve, reject) => {
         const env = { ...process.env }; delete env.ELECTRON_RUN_AS_NODE;
         const child = spawn(session.executable, [], { cwd: path.dirname(session.executable), detached: true, stdio: 'ignore', windowsHide: false, env });

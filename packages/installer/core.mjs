@@ -167,5 +167,13 @@ export async function discover(platform = process.platform, env = process.env) {
     }
     const result = [];
     for (const candidate of candidates) if (await exists(path.join(candidate.resources, 'app.asar'))) result.push({ ...candidate, installed: await exists(path.join(candidate.resources, '.mycord.json')) });
+    if (platform === 'linux') {
+        const { discoverFlatpaks } = createRequire(import.meta.url)('./linux-flatpak.cjs');
+        return await discoverFlatpaks(env.HOME || os.homedir());
+    }
     return result;
+}
+
+export async function prepareTarget(target, action) {
+    if (target.kind === 'flatpak') await createRequire(import.meta.url)('./linux-flatpak.cjs').prepareFlatpakTarget(target, action);
 }

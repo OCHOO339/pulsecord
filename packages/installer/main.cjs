@@ -19,6 +19,17 @@ async function setupLauncher(channel = 'Discord', resources) {
     return result;
 }
 async function setupForTargets(targets) {
+    if (process.platform === 'linux') {
+        const selected = targets.find(target => target.kind === 'flatpak');
+        if (!selected || !app.isPackaged) return;
+        const { installLinuxLauncher } = require('./linux-flatpak.cjs');
+        await installLinuxLauncher({ source: process.env.APPIMAGE || process.execPath, appImage: !!process.env.APPIMAGE, appId: selected.appId, dataHome: process.env.XDG_DATA_HOME, icon: await require('node:fs').promises.readFile(path.join(__dirname, 'assets/pulsecord-logo.png')) });
+        const { saveBundle } = require('./launcher-state.cjs');
+        const { getInstallation } = await import('./core.mjs');
+        const state = await getInstallation(selected.resources);
+        await saveBundle(path.join(selected.resources, 'mycord-versions', state.current), path.join(selected.dataRoot, 'bundles'));
+        return;
+    }
     if (!app.isPackaged || !process.env.PORTABLE_EXECUTABLE_FILE) return;
     const selected = targets.find(target => target.name.startsWith('Discord ')) || targets[0];
     const channel = selected.name.split(' ')[0];
@@ -34,7 +45,15 @@ app.whenReady().then(async () => {
     const core = await import('./core.mjs');
     if (headless) {
         try {
-            if (process.argv.includes('--setup-launcher')) console.log(JSON.stringify(await setupLauncher()));
+            if (process.platform === 'linux') {
+                const { discoverFlatpaks, launchFlatpak } = require('./linux-flatpak.cjs');
+                const appId = process.argv.find(arg => arg.startsWith('--flatpak='))?.slice(10) || 'com.discordapp.Discord';
+                const target = (await discoverFlatpaks()).find(target => target.appId === appId);
+                if (!target) throw Error('Discord Flatpak est introuvable. Installez com.discordapp.Discord depuis Flathub.');
+                if (process.argv.includes('--setup-launcher')) await setupForTargets([target]);
+                else console.log(JSON.stringify(await launchFlatpak({ core, target, bundle: app.isPackaged ? path.join(process.resourcesPath, 'bundle') : path.resolve(__dirname, '../../dist/bundle'), loader: path.join(__dirname, 'loader.cjs') })));
+            }
+            else if (process.argv.includes('--setup-launcher')) console.log(JSON.stringify(await setupLauncher()));
             else console.log(JSON.stringify(await launchDiscord({ core, lifecycle, bundle: app.isPackaged ? path.join(process.resourcesPath, 'bundle') : path.resolve(__dirname, '../../dist/bundle'), loader: path.join(__dirname, 'loader.cjs'), localAppData: process.env.LOCALAPPDATA, channel: process.argv.find(arg => arg.startsWith('--channel='))?.slice(10) || 'Discord' })));
             app.quit();
         } catch (error) { dialog.showErrorBox('PulseCord Launcher', String(error.message || error)); app.exit(1); }

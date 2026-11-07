@@ -1,6 +1,6 @@
 # PulseCord
 
-Modification du client Discord Electron basée sur une révision épinglée d’Equicord, lui-même issu de Vencord. PulseCord comprend les accents jaunes, le logo Pulse, la police Cause, une conversation locale PulseCord OFFICIAL et un installateur Windows.
+Modification du client Discord Electron basée sur une révision épinglée d’Equicord, lui-même issu de Vencord. PulseCord comprend les accents jaunes, le logo Pulse, la police Cause, une conversation locale PulseCord OFFICIAL et des installateurs Windows et Linux x64 pour Discord Flatpak.
 
 ## Installer et mettre à jour
 
@@ -8,13 +8,15 @@ Télécharger **[PulseCord.Installer.exe dans la dernière release](https://gith
 
 Les mises à jour suivantes sont disponibles dans **PulseCord → Updates**. Le client vérifie la signature Ed25519 et l’intégrité du paquet avant installation, puis redémarre Discord après votre clic. La conversation locale PulseCord OFFICIAL est située sous « Messages privés » ; il ne s’agit pas d’un compte bot distant.
 
+Pour **Discord Flatpak sous Linux x64**, utiliser `PulseCord.Installer-linux-x64.AppImage` ou l'archive portable `.tar.gz` de la même release. Le lanceur PulseCord apparaît dans le menu des applications. [Installation Linux et fonctionnement Flatpak](docs/LINUX.md).
+
 ## Lanceur et sauvegardes
 
 Le raccourci **PulseCord** du Bureau lance le client avec réparation après les mises à jour Discord. Dans les paramètres, **Sauvegarde et restauration** enregistre la configuration dans `Documents/PulseCord Backups`, et **Performance** propose le mode économie en arrière-plan. La bannière Pulse est affichée entière dans les paramètres. [Fonctionnement et limites](docs/launcher-backups-performance.md).
 
 ## Compiler
 
-Prérequis : Windows pour produire l’installateur Windows, Git, Node.js 24.19 et Corepack. Depuis la racine du dépôt avec un accès réseau :
+Prérequis : Windows pour produire l’installateur Windows, Linux pour l’AppImage, Git, Node.js 24.19 et Corepack. Depuis la racine du dépôt avec un accès réseau :
 
 ```sh
 corepack pnpm install --frozen-lockfile
@@ -29,7 +31,7 @@ corepack pnpm package:source
 
 Les sources PulseCord se trouvent dans `packages`. La préparation récupère les révisions de `upstream.lock.json` dans `upstream/` et applique les modifications. L’installateur est produit dans `release/PulseCord Installer.exe`. L’archive `release/PulseCord-source.zip` comprend les sources correspondantes et les sources amont épinglées.
 
-La compilation, le contrôle TypeScript et les tests sur fixtures ne garantissent pas la compatibilité avec chaque mise à jour de Discord. Linux et macOS ne sont pas validés.
+La compilation, le contrôle TypeScript et les tests sur fixtures ne garantissent pas la compatibilité avec chaque mise à jour de Discord. La validation Linux comprend une installation Flatpak isolée dans GitHub Actions ; les autres formats Discord Linux et macOS ne sont pas couverts.
 
 ## Publication
 

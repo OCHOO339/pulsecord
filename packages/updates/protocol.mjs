@@ -1,6 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { createHash, verify } from 'node:crypto';
 export const MAX_BUNDLE_BYTES = 64 * 1024 * 1024;
+export function updateManifestUrl(base, platform, arch) {
+    const url = new URL(base);
+    if (url.protocol !== 'https:') throw Error('Update feeds require HTTPS');
+    if (platform === 'win32' && arch === 'x64') return url.href;
+    if (platform !== 'linux' || arch !== 'x64') throw Error('Unsupported PulseCord update platform');
+    url.pathname = url.pathname.replace(/pulsecord-update\.json$/, 'pulsecord-update-linux-x64.json');
+    if (!url.pathname.endsWith('/pulsecord-update-linux-x64.json')) throw Error('Invalid Linux update feed');
+    return url.href;
+}
 export function bundleId(files) {
     return createHash('sha256').update(JSON.stringify(Object.entries(files).sort(([a], [b]) => a.localeCompare(b)))).digest('hex');
 }

@@ -26,7 +26,10 @@ export async function restoreConfiguration(_event: Electron.IpcMainInvokeEvent) 
         const answer = await dialog.showMessageBox({ type: "question", title: "Restaurer PulseCord", message: "Remplacer les réglages et redémarrer Discord ?", detail: "Une copie de récupération sera créée avant de restaurer les réglages des plugins, les thèmes présents dans la sauvegarde et QuickCSS.", buttons: ["Annuler", "Restaurer et relancer"], defaultId: 0, cancelId: 0 });
         if (answer.response !== 1) return { cancelled: true };
         const result = await restoreBackup(DATA_DIR, backupDirectory(), bytes); lastBackup = result.path;
-        try { app.relaunch({ execPath: process.execPath, args: [] }); }
+        try {
+            const flatpakId = process.platform === "linux" ? process.env?.FLATPAK_ID : undefined;
+            app.relaunch({ execPath: flatpakId && /^com\.discordapp\.Discord(?:PTB|Canary)?$/.test(flatpakId) ? `/app/bin/${flatpakId}` : process.execPath, args: [] });
+        }
         catch { return { ...result, restarting: false }; }
         setTimeout(() => app.exit(0), 700);
         return { ...result, restarting: true };
