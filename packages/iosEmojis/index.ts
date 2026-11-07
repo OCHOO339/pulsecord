@@ -3,13 +3,16 @@ import { Devs } from '@utils/constants';
 import definePlugin from '@utils/types';
 import { fontUrl } from './font';
 import { emojiCss } from './style';
+import { startSurfaces } from './surfaces';
 
 let style: HTMLStyleElement | undefined;
+let stopSurfaces: (() => void) | undefined;
 export default definePlugin({
     name: 'IOSEmojis',
     description: 'Apple emoji throughout Discord: messages, reactions, picker, statuses and text. Includes Emoji 17.0; custom server emoji are preserved.',
     authors: [Devs.PulseCord],
     start() {
+        stopSurfaces?.();
         style?.remove();
         const root = getComputedStyle(document.documentElement);
         const fonts = Object.fromEntries(['--font-primary', '--font-display', '--font-headline', '--font-code'].map(name => [name, root.getPropertyValue(name).trim() || 'system-ui,sans-serif']));
@@ -17,6 +20,7 @@ export default definePlugin({
         style.id = 'pc-ios-emojis';
         style.textContent = emojiCss(fontUrl, fonts);
         document.head.append(style);
+        stopSurfaces = startSurfaces();
     },
-    stop() { style?.remove(); style = undefined; }
+    stop() { stopSurfaces?.(); stopSurfaces = undefined; style?.remove(); style = undefined; }
 });

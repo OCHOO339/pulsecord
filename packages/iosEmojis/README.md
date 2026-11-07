@@ -16,6 +16,12 @@ Les PNG sont chargés à la demande depuis la révision épinglée
 embarquée, avec un seul jeu de bitmaps 32px et des ligatures OpenType pour
 Chromium (drapeaux, familles et variantes de peau).
 
+Les textes contenant des émojis reçoivent aussi la police en priorité sur leur
+élément, y compris quand Discord impose une police locale dans un nom de salon
+ou de serveur. Un observateur traite les nouveaux textes et les sprites recyclés
+du sélecteur, sans remplacer les nœuds texte ni le contenu des messages. Les
+styles appliqués sont restaurés et l'observateur est arrêté à la désactivation.
+
 Source de la police :
 [apple-emoji-ttf, macos-26-20260722-484daf4e](https://github.com/samuelngs/apple-emoji-ttf/releases/tag/macos-26-20260722-484daf4e),
 asset `AppleColorEmoji-Linux.ttf`, SHA-256
