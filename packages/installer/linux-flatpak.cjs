@@ -104,6 +104,10 @@ async function prepareFlatpakTarget(target, action) {
     const temporary = path.join(bin, '.zypak-' + randomUUID());
     try { await fs.writeFile(temporary, shim, { mode: 0o755, flag: 'wx' }); await fs.rename(temporary, path.join(bin, 'zypak-wrapper')); }
     finally { await fs.rm(temporary, { force: true }); }
+    // Zypak prepends its own bin directory to PATH. Reset it on every native
+    // relaunch so the official wrapper still selects our private runtime shim.
+    const relaunch = `#!/bin/sh\nexport PATH="$XDG_DATA_HOME/pulsecord/bin:$PATH"\nexec /app/bin/${target.appId} "$@"\n`;
+    await fs.writeFile(path.join(bin, 'pulsecord-discord'), relaunch, { mode: 0o755 });
 }
 function flatpakRunArgs(appId, modified) {
     if (!appIds.includes(appId)) throw Error('Canal Flatpak invalide.');

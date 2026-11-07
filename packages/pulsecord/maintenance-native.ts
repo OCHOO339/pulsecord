@@ -33,7 +33,7 @@ export async function restoreConfiguration(_event: Electron.IpcMainInvokeEvent) 
         const result = await restoreBackup(DATA_DIR, backupDirectory(), bytes); lastBackup = result.path;
         try {
             const flatpakId = process.platform === "linux" ? process.env?.FLATPAK_ID : undefined;
-            app.relaunch({ execPath: flatpakId && /^com\.discordapp\.Discord(?:PTB|Canary)?$/.test(flatpakId) ? `/app/bin/${flatpakId}` : process.execPath, args: [] });
+            app.relaunch({ execPath: flatpakId && /^com\.discordapp\.Discord(?:PTB|Canary)?$/.test(flatpakId) ? join(process.env.XDG_DATA_HOME!, "pulsecord/bin/pulsecord-discord") : process.execPath, args: [] });
         }
         catch { return { ...result, restarting: false }; }
         setTimeout(() => app.exit(0), 700);

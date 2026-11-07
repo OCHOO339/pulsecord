@@ -13,7 +13,7 @@ if(target.installed)throw Error('The integration fixture requires an unmodified 
 const original=await fs.readFile(path.join(target.source,'resources/app.asar'));
 const marker=path.join(target.dataRoot,'ci-smoke.txt');
 const bundle=path.resolve('.cache/flatpak-test-bundle');await fs.mkdir(bundle,{recursive:true});
-const code=`const fs=require('node:fs');const {app}=require('electron');app.whenReady().then(()=>{const marker=${JSON.stringify(marker)};const previous=fs.existsSync(marker)?Number(fs.readFileSync(marker,'utf8')):0;fs.writeFileSync(marker,String(previous+1));if(previous===0)app.relaunch({execPath:'/app/bin/com.discordapp.Discord',args:[]});app.exit(0);});`;
+const code=`const fs=require('node:fs');const {app}=require('electron');app.whenReady().then(()=>{const marker=${JSON.stringify(marker)};const previous=fs.existsSync(marker)?Number(fs.readFileSync(marker,'utf8')):0;fs.writeFileSync(marker,String(previous+1));if(previous===0)app.relaunch({execPath:require('node:path').join(process.env.XDG_DATA_HOME,'pulsecord/bin/pulsecord-discord'),args:[]});app.exit(0);});`;
 await fs.writeFile(path.join(bundle,'patcher.js'),code);
 await fs.writeFile(path.join(bundle,'bundle.json'),JSON.stringify({format:1,version:'0.4.0',files:{'patcher.js':createHash('sha256').update(code).digest('hex')}}));
 const session=await linux.stopFlatpak(target);

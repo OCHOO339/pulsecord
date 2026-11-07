@@ -123,7 +123,7 @@ export async function applyUpdate(_event: Electron.IpcMainInvokeEvent): Promise<
         // archive or start a Squirrel maintenance invocation instead of Discord.
         // Schedule relaunch here so a scheduling failure reaches the renderer.
         const flatpakId = process.platform === "linux" ? process.env?.FLATPAK_ID : undefined;
-        app.relaunch({ execPath: flatpakId && /^com\.discordapp\.Discord(?:PTB|Canary)?$/.test(flatpakId) ? `/app/bin/${flatpakId}` : process.execPath, args: [] });
+        app.relaunch({ execPath: flatpakId && /^com\.discordapp\.Discord(?:PTB|Canary)?$/.test(flatpakId) ? join(process.env.XDG_DATA_HOME!, "pulsecord/bin/pulsecord-discord") : process.execPath, args: [] });
         state = { ...state, phase: "restarting" };
         setTimeout(() => { app.exit(0); }, 700);
         return { ...state };
