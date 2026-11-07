@@ -18,6 +18,7 @@ import { wrapDmSection, wrapDmSectionHeight } from "./dm-section";
 import { VoiceKeeperButton, VoiceKeeperIcon } from "./voicekeeper-button";
 import { SettingsBanner } from "./settings-banner";
 import { setBackgroundEconomy } from "./performance";
+import { setSmoothTyping } from "./smooth-typing";
 
 export function PulseCordIcon({ width = 20, height = 20 }: IconProps) {
     return <img src={brand.logo} width={width} height={height} alt="" />;
@@ -25,6 +26,7 @@ export function PulseCordIcon({ width = 20, height = 20 }: IconProps) {
 
 const settings = definePluginSettings({
     reduceMotion: { type: OptionType.BOOLEAN, description: "Disable costly animations", default: false, onChange: apply },
+    smoothTyping: { type: OptionType.BOOLEAN, description: "Curseur fluide pendant la saisie des messages", default: true, onChange: apply },
     clearCacheOnStartup: { type: OptionType.BOOLEAN, description: "Clear Discord's temporary web cache at startup", default: true },
     backgroundEconomy: { type: OptionType.BOOLEAN, description: "Pause interface animations while Discord is hidden", default: true, onChange: apply },
     startupAnimation: { type: OptionType.BOOLEAN, description: "Show the PulseCord logo when Discord opens", default: true, onChange: apply },
@@ -34,6 +36,7 @@ const settings = definePluginSettings({
 let appearance: HTMLStyleElement | undefined;
 function apply() {
     setBackgroundEconomy(settings.store.backgroundEconomy);
+    setSmoothTyping(settings.store.smoothTyping && !settings.store.reduceMotion);
     if (settings.store.reduceMotion || !settings.store.startupAnimation) stopStartup();
     if (!appearance) return;
     appearance.textContent = brandingCss(brand.logo, brand.splashLogo, brand.fontCss) +
@@ -49,8 +52,9 @@ const QuickCSS = ErrorBoundary.wrap(() => {
         <button disabled={!ready} onClick={async () => { try { await VencordNative.quickCss.set(css); setStatus("Saved. CSS applied to the client."); } catch (e) { setStatus(String(e)); } }}>Save and apply</button><p role="status">{status}</p></section>;
 }, { noop: false });
 const Performance = ErrorBoundary.wrap(() => {
-    const state = settings.use(["reduceMotion", "clearCacheOnStartup", "backgroundEconomy", "startupAnimation"]);
+    const state = settings.use(["reduceMotion", "smoothTyping", "clearCacheOnStartup", "backgroundEconomy", "startupAnimation"]);
     return <section className="pulsecord"><h1>Performance</h1><label><input type="checkbox" checked={state.reduceMotion} onChange={e => settings.store.reduceMotion = e.target.checked} /> Reduce animations and transitions</label>
+        <label><input type="checkbox" checked={state.smoothTyping} onChange={e => settings.store.smoothTyping = e.target.checked} /> Curseur fluide pendant la saisie des messages</label>
         <label><input type="checkbox" checked={state.startupAnimation} onChange={e => settings.store.startupAnimation = e.target.checked} /> Show the PulseCord startup logo</label>
         <label><input type="checkbox" checked={state.clearCacheOnStartup} onChange={e => settings.store.clearCacheOnStartup = e.target.checked} /> Clear temporary web cache at every launch</label>
         <label><input type="checkbox" checked={state.backgroundEconomy} onChange={e => settings.store.backgroundEconomy = e.target.checked} /> Pause interface animations while Discord is hidden</label>
@@ -84,5 +88,5 @@ export default definePlugin({
     renderOfficialDm: () => <OfficialDmRow />,
     flux: { CHANNEL_SELECT: handleInboxNavigation, GUILD_SELECT: handleInboxNavigation },
     start() { SettingsPlugin.customEntries.push(...entries); appearance = document.createElement("style"); document.head.append(appearance); apply(); brandFavicons(brand.logo); showStartup(brand.splashLogo, settings.store.startupAnimation && !settings.store.reduceMotion); startOfficialInbox(); startHomeNavigation(); startUpdates(id => { if (!settings.store.updateNotifications || settings.store.lastNotifiedUpdate === id) return false; settings.store.lastNotifiedUpdate = id; return true; }, next => { if (next.nextBuild) addInboxUpdate(next.nextBuild, next.changelog); }, openOfficialInbox); },
-    stop() { setBackgroundEconomy(false); stopHomeNavigation(); stopOfficialInbox(); stopUpdates(); stopStartup(); restoreBrandFavicons(); for (const entry of entries) { const i = SettingsPlugin.customEntries.indexOf(entry); if (i >= 0) SettingsPlugin.customEntries.splice(i, 1); } appearance?.remove(); appearance = undefined; }
+    stop() { setSmoothTyping(false); setBackgroundEconomy(false); stopHomeNavigation(); stopOfficialInbox(); stopUpdates(); stopStartup(); restoreBrandFavicons(); for (const entry of entries) { const i = SettingsPlugin.customEntries.indexOf(entry); if (i >= 0) SettingsPlugin.customEntries.splice(i, 1); } appearance?.remove(); appearance = undefined; }
 });

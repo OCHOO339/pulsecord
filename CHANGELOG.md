@@ -1,5 +1,7 @@
 # PulseCord
 
+- Saisie fluide : curseur doré animé dans les messages, désactivable dans Performance, avec saisie native conservée et respect de la réduction des animations.
+
 - StatusRotator : plusieurs emojis séparés par des points-virgules défilent dans l'ordre à chaque changement de statut, avec prise en charge des IDs et codes Discord.
 
 - StatusRotator : champ Emoji acceptant un emoji Unicode, un ID ou un code Discord, avec validation et restauration de l'emoji d'origine.
