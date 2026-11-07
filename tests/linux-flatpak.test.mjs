@@ -44,6 +44,14 @@ test('Flatpak runtime copies preserve sandbox model symlinks without following t
     assert.equal((await fs.lstat(copied)).isSymbolicLink(),true);
     assert.equal(await fs.readlink(copied),'/var/data/mediapipe_models/model.tflite');
 });
+test('Flatpak deployment-owned executable links are materialized in the private runtime',{skip:process.platform!=='linux'},async t=>{
+    const f=await fixture(t);const filesRoot=path.dirname(f.source);const extra=path.join(filesRoot,'extra');await fs.mkdir(extra);
+    await fs.writeFile(path.join(extra,'Discord'),'real executable');await fs.unlink(path.join(f.source,'Discord'));
+    await fs.symlink('../extra/Discord',path.join(f.source,'Discord'));
+    await linux.prepareFlatpakTarget({...f,filesRoot},'install');
+    assert.equal((await fs.lstat(path.join(f.runtime,'Discord'))).isSymbolicLink(),false);
+    assert.equal(await fs.readFile(path.join(f.runtime,'Discord'),'utf8'),'real executable');
+});
 test('Flatpak shutdown never kills other application IDs and desktop entries preserve arguments',async t=>{
     const f=await fixture(t),calls=[];let running=true;
     await linux.stopFlatpak(f,async(command,args)=>{calls.push(args);if(args[0]==='kill')running=false;return{stdout:args[0]==='ps'?(running?id+'\norg.example.App\n':'org.example.App\n'):''};});

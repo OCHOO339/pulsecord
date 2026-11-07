@@ -6,9 +6,10 @@ import {createHash} from 'node:crypto';
 import * as core from '../packages/installer/core.mjs';
 const require=createRequire(import.meta.url);
 const linux=require('../packages/installer/linux-flatpak.cjs');
-if(process.platform!=='linux'||process.env.PULSECORD_REAL_FLATPAK_TEST!=='1')throw Error('Explicit Linux CI fixture required');
+if(process.platform!=='linux'||process.env.PULSECORD_REAL_FLATPAK_TEST!=='1'||process.env.GITHUB_ACTIONS!=='true')throw Error('Explicit isolated GitHub Linux CI fixture required');
 const target=(await linux.discoverFlatpaks()).find(item=>item.appId==='com.discordapp.Discord');
 if(!target)throw Error('Install Discord Flatpak in the isolated CI account first');
+if(target.installed)throw Error('The integration fixture requires an unmodified CI account');
 const original=await fs.readFile(path.join(target.source,'resources/app.asar'));
 const marker=path.join(target.dataRoot,'ci-smoke.txt');
 const bundle=path.resolve('.cache/flatpak-test-bundle');await fs.mkdir(bundle,{recursive:true});
@@ -18,6 +19,13 @@ await fs.writeFile(path.join(bundle,'bundle.json'),JSON.stringify({format:1,vers
 const session=await linux.stopFlatpak(target);
 try{
     await linux.prepareFlatpakTarget(target,'install');
+    const binary=path.join(target.runtime,'Discord');
+    const sourceStat=await fs.lstat(path.join(target.source,'Discord'));
+    const binaryStat=await fs.lstat(binary);
+    console.log(JSON.stringify({sourceBinaryIsLink:sourceStat.isSymbolicLink(),privateBinaryIsLink:binaryStat.isSymbolicLink(),privateBinaryBytes:binaryStat.size}));
+    const executable=await fs.open(binary,'r');const magic=Buffer.alloc(4);
+    try{await executable.read(magic,0,4,0);}finally{await executable.close();}
+    if(!magic.equals(Buffer.from([0x7f,0x45,0x4c,0x46])))throw Error('The private Flatpak executable is not an ELF binary');
     await fs.rm(marker,{force:true});
     await core.install(target.resources,bundle,path.resolve('packages/updates/loader.cjs'));
     await linux.startFlatpak(session, { stdio: 'inherit' });

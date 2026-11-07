@@ -23,11 +23,12 @@ async function discoverFlatpaks(home = os.homedir(), run = execute) {
                 run('flatpak', ['info', '--show-commit', appId], options)
             ]);
             const commit = revision.trim();
-            const source = await fs.realpath(path.join(location.trim(), 'files', 'discord'));
+            const filesRoot = await fs.realpath(path.join(location.trim(), 'files'));
+            const source = await fs.realpath(path.join(filesRoot, 'discord'));
             const managed = paths(appId, commit, home);
             if (!(await fs.stat(path.join(source, 'resources', 'app.asar'))).isFile()) continue;
             const installed = await fs.lstat(path.join(managed.resources, '.mycord.json')).then(s => s.isFile(), e => { if (e.code !== 'ENOENT') throw e; return false; });
-            targets.push({ name: `${appId.slice('com.discordapp.'.length)} Flatpak`, kind: 'flatpak', appId, commit, source, home, ...managed, installed });
+            targets.push({ name: `${appId.slice('com.discordapp.'.length)} Flatpak`, kind: 'flatpak', appId, commit, source, filesRoot, home, ...managed, installed });
         } catch (error) {
             if (error.code === 'EACCES' || error.code === 'EPERM') throw error;
             // Missing channels or a missing flatpak command are normal.
@@ -53,16 +54,30 @@ async function prepareFlatpakTarget(target, action) {
         if (marker.appId !== target.appId || marker.commit !== target.commit) throw Error('Ce dossier appartient à une autre installation.');
     } else {
         const source = await fs.realpath(target.source);
+        const filesRoot = await fs.realpath(target.filesRoot || path.dirname(source));
+        const withinFiles = file => file === filesRoot || file.startsWith(filesRoot + path.sep);
+        if (!withinFiles(source)) throw Error('Source Flatpak hors de son déploiement.');
         const stage = await fs.mkdtemp(path.join(runtimes, '.stage-'));
         try {
             // The source is the installed, immutable Flatpak deployment. Preserve
             // its sandbox-internal symlinks without following them on the host.
-            async function copyRuntime(from, to) {
+            async function copyRuntime(from, to, ancestors = new Set()) {
                 const stat = await fs.lstat(from);
-                if (stat.isSymbolicLink()) await fs.symlink(await fs.readlink(from), to);
+                if (stat.isSymbolicLink()) {
+                    const link = await fs.readlink(from);
+                    const mapped = link.startsWith('/app/') ? path.join(filesRoot, link.slice(5)) : path.isAbsolute(link) ? undefined : path.resolve(path.dirname(from), link);
+                    const resolved = mapped ? await fs.realpath(mapped).catch(error => { if (error.code !== 'ENOENT') throw error; }) : undefined;
+                    // Flatpak may link its executable to ../extra or /app/extra.
+                    // Materialize deployment-owned links; retain runtime/data links.
+                    if (resolved && withinFiles(resolved)) await copyRuntime(resolved, to, ancestors);
+                    else await fs.symlink(link, to);
+                }
                 else if (stat.isDirectory()) {
+                    const physical = await fs.realpath(from);
+                    if (ancestors.has(physical)) throw Error('Boucle de liens dans Discord Flatpak.');
+                    const parents = new Set(ancestors); parents.add(physical);
                     await fs.mkdir(to, { recursive: true, mode: (stat.mode & 0o777) | 0o700 });
-                    for (const name of await fs.readdir(from)) await copyRuntime(path.join(from, name), path.join(to, name));
+                    for (const name of await fs.readdir(from)) await copyRuntime(path.join(from, name), path.join(to, name), parents);
                 } else if (stat.isFile()) {
                     await fs.copyFile(from, to); await fs.chmod(to, stat.mode & 0o777);
                 } else throw Error('Fichier Discord Flatpak non pris en charge.');
