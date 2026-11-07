@@ -10,7 +10,9 @@ const appIds = ['com.discordapp.Discord', 'com.discordapp.DiscordPTB', 'com.disc
 function paths(appId, commit, home = os.homedir()) {
     if (!appIds.includes(appId) || !/^[a-f0-9]{64}$/.test(commit)) throw Error('Installation Flatpak invalide.');
     const dataRoot = path.resolve(home, '.var', 'app', appId, 'data', 'pulsecord');
-    const runtime = path.join(dataRoot, 'runtimes', commit);
+    // Zypak requires its read-only runtime path to end in WidevineCdm.
+    // This is a private executable directory, never the account data root.
+    const runtime = path.join(dataRoot, 'runtimes', commit + '.WidevineCdm');
     return { dataRoot, runtime, resources: path.join(runtime, 'resources') };
 }
 async function discoverFlatpaks(home = os.homedir(), run = execute) {
@@ -98,7 +100,7 @@ async function prepareFlatpakTarget(target, action) {
     // Zypak's documented runtime-directory slot exposes exactly this directory
     // read-only to nested sandboxes (Launcher::Run -> ExposePathRo). Without it
     // the zygote cannot execute a binary outside /app. No user data is exposed.
-    const shim = `#!/bin/sh\n# PulseCord: retain the official Flatpak wrapper and its sandbox.\nif [ "$1" = "/app/discord/Discord" ]; then\n  shift\n  export ZYPAK_EXPOSE_WIDEVINE_PATH="$XDG_DATA_HOME/pulsecord/runtimes/${target.commit}"\n  exec /app/bin/zypak-wrapper "$XDG_DATA_HOME/pulsecord/runtimes/${target.commit}/Discord" "$@"\nfi\nexec /app/bin/zypak-wrapper "$@"\n`;
+    const shim = `#!/bin/sh\n# PulseCord: retain the official Flatpak wrapper and its sandbox.\nif [ "$1" = "/app/discord/Discord" ]; then\n  shift\n  export ZYPAK_EXPOSE_WIDEVINE_PATH="$XDG_DATA_HOME/pulsecord/runtimes/${target.commit}.WidevineCdm"\n  exec /app/bin/zypak-wrapper "$XDG_DATA_HOME/pulsecord/runtimes/${target.commit}.WidevineCdm/Discord" "$@"\nfi\nexec /app/bin/zypak-wrapper "$@"\n`;
     const temporary = path.join(bin, '.zypak-' + randomUUID());
     try { await fs.writeFile(temporary, shim, { mode: 0o755, flag: 'wx' }); await fs.rename(temporary, path.join(bin, 'zypak-wrapper')); }
     finally { await fs.rm(temporary, { force: true }); }

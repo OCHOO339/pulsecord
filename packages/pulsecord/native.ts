@@ -115,7 +115,7 @@ export async function applyUpdate(_event: Electron.IpcMainInvokeEvent): Promise<
                 catch (error) { console.warn("[PulseCord] Could not refresh launcher recovery bundle", error); }
             }
         }
-        if (process.platform === "linux" && basename(resolve(resources, "../..")) === "runtimes" && /^[a-f0-9]{64}$/.test(basename(resolve(resources, "..")))) {
+        if (process.platform === "linux" && basename(resolve(resources, "../..")) === "runtimes" && /^[a-f0-9]{64}\.WidevineCdm$/.test(basename(resolve(resources, "..")))) {
             await saveBundle(stage, join(resolve(resources, "../../.."), "bundles")).catch(error => console.warn("[PulseCord] Could not refresh Linux recovery bundle", error));
         }
         if ((await getInstallation(resources)).current !== release.bundleId) throw Error("Le nouveau build n’a pas été activé. Discord ne sera pas redémarré.");
