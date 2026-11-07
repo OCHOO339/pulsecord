@@ -95,7 +95,10 @@ async function prepareFlatpakTarget(target, action) {
     if (await fs.realpath(resources) !== resources) throw Error('Ressources Flatpak redirigées.');
     const bin = path.join(dataRoot, 'bin'); await fs.mkdir(bin, { recursive: true });
     if (await fs.realpath(bin) !== bin) throw Error('Dossier de lancement redirigé.');
-    const shim = `#!/bin/sh\n# PulseCord: retain the official Flatpak wrapper and its sandbox.\nif [ "$1" = "/app/discord/Discord" ]; then\n  shift\n  exec /app/bin/zypak-wrapper "$XDG_DATA_HOME/pulsecord/runtimes/${target.commit}/Discord" "$@"\nfi\nexec /app/bin/zypak-wrapper "$@"\n`;
+    // Zypak's documented runtime-directory slot exposes exactly this directory
+    // read-only to nested sandboxes (Launcher::Run -> ExposePathRo). Without it
+    // the zygote cannot execute a binary outside /app. No user data is exposed.
+    const shim = `#!/bin/sh\n# PulseCord: retain the official Flatpak wrapper and its sandbox.\nif [ "$1" = "/app/discord/Discord" ]; then\n  shift\n  export ZYPAK_EXPOSE_WIDEVINE_PATH="$XDG_DATA_HOME/pulsecord/runtimes/${target.commit}"\n  exec /app/bin/zypak-wrapper "$XDG_DATA_HOME/pulsecord/runtimes/${target.commit}/Discord" "$@"\nfi\nexec /app/bin/zypak-wrapper "$@"\n`;
     const temporary = path.join(bin, '.zypak-' + randomUUID());
     try { await fs.writeFile(temporary, shim, { mode: 0o755, flag: 'wx' }); await fs.rename(temporary, path.join(bin, 'zypak-wrapper')); }
     finally { await fs.rm(temporary, { force: true }); }

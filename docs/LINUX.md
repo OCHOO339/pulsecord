@@ -18,6 +18,8 @@ Les sauvegardes automatiques restent dans les données persistantes de PulseCord
 
 ## Fonctionnement
 
+Le dossier du runtime privé est exposé en lecture seule aux sous-processus sandboxés via le mécanisme Zypak `ZYPAK_EXPOSE_WIDEVINE_PATH`. Cet accès reste limité au runtime ; les sauvegardes et les données du compte ne sont pas partagées avec ces sous-processus.
+
 L'installateur interroge `flatpak info` pour trouver le déploiement local. Il conserve une copie privée, spécifique à son commit, dans `~/.var/app/com.discordapp.Discord/data/pulsecord/runtimes/`. L'archive Discord originale du déploiement Flatpak reste intacte.
 
 Le lancement utilise toujours `flatpak run` et le script officiel du paquet. Une substitution de `zypak-wrapper`, limitée à cette commande de lancement, redirige le binaire Discord vers la copie privée. Le wrapper officiel conserve ses réglages, l'intégration IPC et les préparations des modèles audio/vidéo. Aucun override permanent Flatpak n'est ajouté.
