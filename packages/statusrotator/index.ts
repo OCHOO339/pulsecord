@@ -67,6 +67,7 @@ const settings = definePluginSettings({
         placeholder: "🔥 ou 123456789012345678 ou <:nom:123456789012345678>",
         default: "",
         isValid(value) {
+            if (typeof value !== "string") return "Saisis un emoji ou un ID Discord.";
             try { parseEmoji(value); return true; }
             catch (error) { return (error as Error).message; }
         },
