@@ -28,7 +28,15 @@ const profileBadge: ProfileBadge = {
 export function startCommunityBadges() {
     addProfileBadge(profileBadge);
     addMessageDecoration("pulsecord-community", props => <PulseCommunityBadge userId={props.message.author.id} />);
-    addMemberListDecorator("pulsecord-community", props => <PulseCommunityBadge userId={props.user.id} compact />);
+    addMemberListDecorator("pulsecord-community", props => {
+        // Group and system DM rows do not always contain a user. For one-to-one
+        // DMs only, recover the recipient without treating a channel ID as a user.
+        const userId = props.user?.id ?? (
+            props.type === "dm" && props.channel?.type === 1 && props.channel.recipients?.length === 1
+                ? props.channel.recipients[0] : undefined
+        );
+        return userId ? <PulseCommunityBadge userId={userId} compact /> : null;
+    });
     void startCommunityRegistry();
 }
 export function stopCommunityBadges() {

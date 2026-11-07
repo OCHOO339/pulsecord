@@ -79,6 +79,15 @@ test('badge surfaces use the same roles, display the Pulse logo and unregister c
     assert.equal(badge.getBadges({userId:friend})[0].name,'Pulse User');assert.equal(badge.getBadges({userId:other}).length,0);
     assert.equal(ui.PulseCommunityBadge({userId:friend}).props['aria-label'],'Pulse User');
     assert.equal(ui.PulseCommunityBadge({userId:dev}).props['aria-label'],'Pulse Dev');assert.equal(ui.PulseCommunityBadge({userId:other}),null);
-    assert.equal(messages.size,1);assert.equal(members.size,1);ui.stopCommunityBadges();
+    assert.equal(messages.size,1);assert.equal(members.size,1);
+    const renderMember=members.get('pulsecord-community');
+    assert.equal(renderMember({type:'guild',user:{id:friend}}).props['aria-label'],'Pulse User');
+    assert.equal(renderMember({type:'dm',channel:{type:1,recipients:[friend]}}).props['aria-label'],'Pulse User');
+    assert.equal(renderMember({type:'dm',channel:{type:3,recipients:[friend,dev]}}),null);
+    assert.equal(renderMember({type:'dm',channel:{type:3,recipients:[friend]}}),null);
+    assert.equal(renderMember({type:'dm',channel:{type:1,recipients:[]}}),null);
+    assert.equal(renderMember({type:'dm'}),null);
+    assert.equal(renderMember({type:'guild'}),null);
+    ui.stopCommunityBadges();
     assert.equal(profiles.size,0);assert.equal(messages.size,0);assert.equal(members.size,0);
 });
