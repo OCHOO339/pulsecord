@@ -36,6 +36,10 @@ function parseEmoji(input: string): { emojiId: string; emojiName: string } | und
     throw Error("Colle un emoji (🔥), un ID Discord ou un code <:nom:ID> / <a:nom:ID>.");
 }
 
+function parseEmojis(input: string) {
+    return input.split(";").map(value => value.trim()).filter(Boolean).map(value => parseEmoji(value)!);
+}
+
 function snapshot(status: CustomStatus | null | undefined): CustomStatus {
     return {
         text: status?.text ?? "",
@@ -63,15 +67,15 @@ const settings = definePluginSettings({
     },
     emoji: {
         type: OptionType.STRING,
-        description: "Emoji commun aux cinq statuts : colle un emoji, son ID ou son code <:nom:ID>. Vide : conserve l'emoji actuel. Discord doit autoriser l'utilisation de cet emoji sur ton compte.",
-        placeholder: "🔥 ou 123456789012345678 ou <:nom:123456789012345678>",
+        description: "Sépare les emojis par ; pour les faire défiler dans l'ordre à chaque changement de statut. Emojis, IDs et codes <:nom:ID> acceptés. Vide : conserve l'emoji actuel. Discord doit autoriser leur utilisation sur ton compte.",
+        placeholder: "🔥;💜;123456789012345678;<:nom:123456789012345678>",
         default: "",
         isValid(value) {
             if (typeof value !== "string") return "Saisis un emoji ou un ID Discord.";
-            try { parseEmoji(value); return true; }
+            try { parseEmojis(value); return true; }
             catch (error) { return (error as Error).message; }
         },
-        onChange: restart
+        onChange: () => { emojiIndex = 0; restart(); }
     },
     interval: {
         type: OptionType.SLIDER,
@@ -92,6 +96,7 @@ let timer: ReturnType<typeof setTimeout> | undefined;
 let running = false;
 let generation = 0;
 let index = 0;
+let emojiIndex = 0;
 let failures = 0;
 let retryUntil = 0;
 // Serialize rotation and restoration, including when stop/start occurs during a request.
@@ -142,14 +147,18 @@ async function tick(token: number) {
         if (!current(token) || UserStore.getCurrentUser()?.id !== userId) return;
         const text = phrases[index % phrases.length];
         const existing = snapshot(CustomStatusSettings.getSetting());
-        const emoji = parseEmoji(settings.store.emoji) ?? existing;
+        const emojis = parseEmojis(settings.store.emoji);
+        const emoji = emojis[emojiIndex % emojis.length] ?? existing;
         if (text !== existing.text || emoji.emojiId !== existing.emojiId || emoji.emojiName !== existing.emojiName) {
             await CustomStatusSettings.updateSetting({
                 ...existing, text, emojiId: emoji.emojiId, emojiName: emoji.emojiName,
                 expiresAtMs: "0", createdAtMs: String(Date.now())
             });
         }
+        // An edit/stop during the request must not advance the new rotation.
+        if (!current(token)) return;
         index = (index + 1) % phrases.length;
+        emojiIndex = emojis.length ? (emojiIndex + 1) % emojis.length : 0;
         failures = 0;
         retryUntil = 0;
     } catch (error) {
@@ -182,6 +191,7 @@ export default definePlugin({
     start() {
         running = true;
         index = 0;
+        emojiIndex = 0;
         restart();
     },
 

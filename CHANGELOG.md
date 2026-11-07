@@ -1,5 +1,7 @@
 # PulseCord
 
+- StatusRotator : plusieurs emojis séparés par des points-virgules défilent dans l'ordre à chaque changement de statut, avec prise en charge des IDs et codes Discord.
+
 - StatusRotator : champ Emoji acceptant un emoji Unicode, un ID ou un code Discord, avec validation et restauration de l'emoji d'origine.
 
 - StatusRotator remplace BioRotator : rotation de cinq statuts personnalisés, pause, intervalle réglable et restauration du statut et de son emoji à l'arrêt, sans modifier la bio.

@@ -127,3 +127,34 @@ test('changing only the emoji updates a matching status text; invalid inputs are
     }
     await f.plugin.stop();
 });
+
+test('semicolon-separated emojis cycle in order independently of the phrase count', async () => {
+    const f = fixture();
+    const input = ' 🔥 ; 💜 ; 123456789012345678 ; <a:wave:234567890123456789>; ';
+    assert.equal(f.validateEmoji(input), true);
+    f.change('phrases', 'un\ndeux'); f.change('emoji', input);
+    f.plugin.start(); await flush();
+    for (let i = 0; i < 5; i++) await f.next();
+    assert.deepEqual(f.writes.map(status => status.emojiName), ['🔥', '💜', 'pulse', 'wave', '🔥', '💜']);
+    assert.deepEqual(f.writes.map(status => status.text), ['un', 'deux', 'un', 'deux', 'un', 'deux']);
+    await f.plugin.stop(); assert.deepEqual(f.writes.at(-1), original);
+});
+
+test('an emoji list edit during an outstanding update starts the new list at its first emoji', async () => {
+    let finish, calls = 0;
+    const f = fixture({ update: () => ++calls === 1 ? new Promise(resolve => { finish = resolve; }) : Promise.resolve() });
+    f.change('emoji', '🔥;💜'); f.plugin.start(); await flush();
+    f.change('emoji', '🚀;🧡'); finish(); await flush();
+    assert.equal(f.writes.at(-1).emojiName, '🚀');
+    await f.next(); assert.equal(f.writes.at(-1).emojiName, '🧡');
+    await f.plugin.stop(); assert.equal(f.timers.size, 0);
+});
+
+test('each emoji list entry is validated, while blank separators preserve the current emoji', async () => {
+    const f = fixture();
+    assert.notEqual(f.validateEmoji('🔥;invalid;💜'), true);
+    assert.equal(f.validateEmoji(' ; ; '), true);
+    f.change('emoji', ' ; ; '); f.plugin.start(); await flush();
+    assert.equal(f.writes[0].emojiName, original.emojiName);
+    await f.plugin.stop();
+});
