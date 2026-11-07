@@ -9,7 +9,7 @@ app.whenReady().then(async () => {
         const { transform } = tooling('esbuild');
         const base = 'upstream/equicord/src/userplugins/pulsecord/';
         const code = {};
-        for (const file of ['index.tsx', 'brand.ts', 'startup.ts', 'branding.ts', 'inbox.tsx', 'inbox-host.ts', 'inbox-background.ts', 'home-navigation.ts', 'markdown.tsx', 'dm-section.tsx', 'settings-banner.tsx', 'backups.tsx', 'performance.ts']) code[file] = (await transform(await fs.readFile(base + file, 'utf8') + (file === 'index.tsx' ? '\nexport { Performance };' : ''), { loader: file.endsWith('tsx') ? 'tsx' : 'ts', format: 'cjs' })).code;
+        for (const file of ['index.tsx', 'brand.ts', 'startup.ts', 'branding.ts', 'inbox.tsx', 'inbox-host.ts', 'inbox-background.ts', 'home-navigation.ts', 'markdown.tsx', 'dm-section.tsx', 'settings-banner.tsx', 'backups.tsx', 'performance.ts', 'community-core.ts', 'community-store.ts', 'community.tsx']) code[file] = (await transform(await fs.readFile(base + file, 'utf8') + (file === 'index.tsx' ? '\nexport { Performance };' : ''), { loader: file.endsWith('tsx') ? 'tsx' : 'ts', format: 'cjs' })).code;
         code.publicDmFixture = await fs.readFile('.cache/discord-public/dm-list-fixture.js', 'utf8').catch(() => '');
         const css = await fs.readFile(base + 'style.css', 'utf8');
         const window = new BrowserWindow({ show: false, width: 900, height: 600, webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false, backgroundThrottling: false } });
@@ -34,6 +34,10 @@ app.whenReady().then(async () => {
                 '@pulsecord/localization': { PluginText: ({text}) => document.createTextNode(text), translateUi: text => text },
                 './style.css': {}, './brand': brand, './startup': startup, './branding': branding,
                 './smooth-typing': { setSmoothTyping: () => {} },
+                '@api/DataStore': {get:async()=>({format:1,checkedAt:Date.now(),users:['669936721730863105']}),set:async()=>{}},
+                '@api/Badges': {addProfileBadge:()=>{},removeProfileBadge:()=>{}},
+                '@api/MessageDecorations': {addMessageDecoration:()=>{},removeMessageDecoration:()=>{}},
+                '@api/MemberListDecorators': {addMemberListDecorator:()=>{},removeMemberListDecorator:()=>{}},
                 './voicekeeper-button': { VoiceKeeperButton: () => null, VoiceKeeperIcon: () => null },
                 './inbox-background': load(code['inbox-background.ts'], () => {}),
                 './updates': { startUpdates: () => {}, stopUpdates: () => {}, UpdatesTab: () => null },
@@ -52,6 +56,16 @@ app.whenReady().then(async () => {
             };
             mocks['./settings-banner'] = load(code['settings-banner.tsx'], name => mocks[name]);
             mocks['./performance'] = load(code['performance.ts'], name => mocks[name]);
+            mocks['@webpack/common'].UserStore={getCurrentUser:()=>({id:'1366054228480753755'})};
+            mocks['./community-core']=load(code['community-core.ts'],()=>{});
+            mocks['./community-store']=load(code['community-store.ts'],name=>mocks[name]);
+            mocks['./community']=load(code['community.tsx'],name=>mocks[name]);
+            mocks['./community'].startCommunityBadges();await Promise.resolve();
+            window.showPulseCommunityPreview=()=>{
+                const tab=mocks['./community'].CommunityTab();
+                const demo=document.createElement('p');demo.textContent='Membre inscrit : ';demo.append(mocks['./community'].PulseCommunityBadge({userId:'669936721730863105'}));tab.append(demo);
+                document.querySelector('#root').replaceChildren(tab);
+            };
             mocks['@webpack/common'].useState = initial => [initial, () => {}];
             mocks['./markdown'] = load(code['markdown.tsx'], name => mocks[name]);
             mocks['./inbox-host'] = load(code['inbox-host.ts'], name => mocks[name]);
@@ -188,7 +202,14 @@ app.whenReady().then(async () => {
         if (!result.settingsBanner) throw Error('Settings banner must fit without cropping or overflow');
         await fs.writeFile('dist/qa/pulsecord-settings.png', (await window.webContents.capturePage()).toPNG());
         await window.webContents.executeJavaScript('window.showPulsePerformancePreview()');
+        await new Promise(resolve=>setTimeout(resolve,100));
         await fs.writeFile('dist/qa/pulsecord-performance.png', (await window.webContents.capturePage()).toPNG());
+        window.setSize(900,900);
+        await window.webContents.executeJavaScript('window.showPulseCommunityPreview()');
+        await new Promise(resolve=>setTimeout(resolve,100));
+        result.communityBadges=await window.webContents.executeJavaScript('Array.from(document.querySelectorAll(".pc-community-badge")).map(node=>node.getAttribute("aria-label"))');
+        if(result.communityBadges.join(',')!=='Pulse Dev,Pulse User')throw Error('Community roles must be visible with distinct labels');
+        await fs.writeFile('dist/qa/pulsecord-community.png', (await window.webContents.capturePage()).toPNG());
         await fs.writeFile('dist/qa/client-ui.json', JSON.stringify(result, null, 2)); app.exit(0);
     } catch (error) { console.error(error); app.exit(1); }
 });

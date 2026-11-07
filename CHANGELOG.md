@@ -1,5 +1,7 @@
 # PulseCord
 
+- Badges Pulse Dev et Pulse User sur les profils, messages et listes de membres ; inscription volontaire et validation via le registre GitHub, avec cache local de six heures.
+
 - Optimisation de l'interface pendant les jeux et le vocal : règles CSS des emojis remplacées par une règle commune, traitement des mutations ciblé et suspendu sans focus, lectures et écritures de polices regroupées.
 - Animations en pause lorsque Discord perd le focus ; le curseur fluide ne mesure plus l'éditeur pendant les interactions hors de la zone de message.
 - Cache web conservé entre les lancements, contrôle hebdomadaire différé et nettoyage seulement au-delà de 256 Mo ; suppression des copies complètes du cache de traduction à chaque libellé traduit.

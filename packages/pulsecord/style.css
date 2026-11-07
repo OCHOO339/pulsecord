@@ -1,5 +1,6 @@
 .pulsecord { color: var(--text-normal, #eee); font: 15px/1.6 var(--font-primary, system-ui); max-width: 900px; padding: 24px; background: #151515; border: 1px solid #303030; border-radius: 8px; }
 .pulsecord h1 { font-size: 24px; margin: 0 0 12px; color: #fafafa; }
+.pc-community-badge{display:inline-flex;vertical-align:middle;align-items:center;gap:4px;padding:1px 5px;border-radius:4px;background:#33290f;color:#ffdc72;font:600 10px/16px var(--font-primary,system-ui);white-space:nowrap}.pc-community-badge img{display:block;object-fit:contain;flex:none}.pc-community-dev{background:#f8c332;color:#211a08}.pc-community-dev img{filter:brightness(.15)}.pc-community-compact{padding:2px;width:18px;height:18px;justify-content:center}
 [data-pc-smooth-caret]{caret-color:transparent!important}
 html[data-pc-reduce-motion] *{animation-duration:0s!important;transition-duration:0s!important;scroll-behavior:auto!important}
 .pc-smooth-caret{position:fixed;top:0;left:0;width:2px;z-index:1000;pointer-events:none;contain:strict;transition:transform 90ms cubic-bezier(.16,1,.3,1)}
