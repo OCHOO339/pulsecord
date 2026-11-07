@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
 const path = require('node:path');
+const { randomUUID, createHash } = require('node:crypto');
 const fs = (process.versions.electron ? require('original-fs') : require('node:fs')).promises;
 const { saveBundle, readSavedBundle } = require('./launcher-state.cjs');
 function compareVersions(a, b) {
@@ -71,7 +72,19 @@ async function installLauncher({ source, destination, desktop, shell, channel = 
                     if (sourceStat.isDirectory()) {
                         await fs.mkdir(dest, { recursive: true });
                         for (const item of await fs.readdir(src)) await copyRuntime(path.join(src, item), path.join(dest, item));
-                    } else if (sourceStat.isFile()) await fs.copyFile(src, dest);
+                    } else if (sourceStat.isFile()) {
+                        // Never truncate an archive that a launcher may be opening.
+                        // A failed copy keeps the previously working file intact.
+                        const temporary = dest + '.' + randomUUID() + '.pulsecord-tmp';
+                        try {
+                            await fs.copyFile(src, temporary);
+                            if (path.basename(src) === 'app.asar') {
+                                const hash = bytes => createHash('sha256').update(bytes).digest('hex');
+                                if (hash(await fs.readFile(src)) !== hash(await fs.readFile(temporary))) throw Error('La copie de l’archive du lanceur est incomplète.');
+                            }
+                            await fs.rename(temporary, dest);
+                        } finally { await fs.rm(temporary, { force: true }); }
+                    }
                     else throw Error('Fichier du runtime invalide.');
                 }
                 await copyRuntime(from, to);

@@ -67,3 +67,15 @@ test('installed launcher keeps its runtime beside the executable instead of re-e
     assert.equal(await fs.readFile(result.target,'utf8'),'electron');
     assert.equal(await fs.readFile(path.join(path.dirname(result.target),'resources/app.asar'),'utf8'),'application');
 });
+test('an interrupted archive replacement preserves the working launcher archive',async t=>{
+    const f=await fixture(t),runtime=path.join(f.root,'runtime'),installed=path.join(f.root,'installed'),desktop=path.join(f.root,'desktop');
+    await fs.mkdir(path.join(runtime,'resources'),{recursive:true});await fs.mkdir(path.join(installed,'resources'),{recursive:true});await fs.mkdir(desktop);
+    const source=path.join(runtime,'Installer.exe');await fs.writeFile(source,'new-electron');await fs.writeFile(path.join(runtime,'resources/app.asar'),'new-archive');
+    const archive=path.join(installed,'resources/app.asar');await fs.writeFile(archive,'working-archive');
+    const physical=require('node:fs').promises,rename=physical.rename;
+    physical.rename=async(from,to)=>{if(to===archive)throw Object.assign(Error('archive locked'),{code:'EBUSY'});return rename(from,to);};
+    try { await assert.rejects(()=>installLauncher({source,runtimeDirectory:runtime,destination:installed,desktop,shell:{writeShortcutLink:()=>{throw Error('Must not publish a partial runtime');}}}),/archive locked/); }
+    finally {physical.rename=rename;}
+    assert.equal(await fs.readFile(archive,'utf8'),'working-archive');
+    assert.deepEqual(await fs.readdir(path.dirname(archive)),['app.asar']);
+});

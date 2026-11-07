@@ -1,5 +1,8 @@
 # PulseCord
 
+- Ajout de BioRotator : rotation de cinq bios, pause, intervalle réglable et restauration de la bio d'origine, avec arrêt des minuteries et reprise différée en cas d'erreur Discord.
+
+- Copie atomique de l’archive du lanceur avec vérification SHA-256 : un échec de copie conserve le fichier fonctionnel au lieu de le tronquer.
 - Lanceur intelligent Windows avec raccourci PulseCord, choix de la dernière version Discord et récupération du dernier build après une mise à jour du client.
 - Sauvegarde en un clic des réglages, thèmes locaux et QuickCSS, restauration validée et copie de récupération automatique.
 - Bannière Pulse entière dans les paramètres ; animations CSS en pause en arrière-plan et suppression du sondage VoiceKeeper hors vocal.
