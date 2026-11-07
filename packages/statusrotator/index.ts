@@ -7,7 +7,7 @@ import { definePluginSettings } from "@api/Settings";
 import { getUserSettingLazy } from "@api/UserSettings";
 import { Logger } from "@utils/Logger";
 import definePlugin, { OptionType } from "@utils/types";
-import { UserStore } from "@webpack/common";
+import { EmojiStore, UserStore } from "@webpack/common";
 
 const logger = new Logger("StatusRotator");
 const MAX_PHRASES = 5;
@@ -20,6 +20,21 @@ interface CustomStatus {
     createdAtMs?: string;
 }
 const CustomStatusSettings = getUserSettingLazy<CustomStatus | null | undefined>("status", "customStatus")!;
+
+function parseEmoji(input: string): { emojiId: string; emojiName: string } | undefined {
+    const value = input.trim();
+    if (!value) return;
+    const markup = /^<a?:([A-Za-z0-9_]{1,32}):([1-9]\d{16,19})>$/.exec(value);
+    const id = markup?.[2] ?? (/^[1-9]\d{16,19}$/.test(value) ? value : undefined);
+    if (id && BigInt(id) <= 18446744073709551615n) {
+        return { emojiId: id, emojiName: markup?.[1] ?? EmojiStore.getCustomEmojiById(id)?.name ?? "emoji" };
+    }
+    const graphemes = [...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(value)];
+    if (value.length <= 64 && graphemes.length === 1 && /\p{Extended_Pictographic}|\p{Regional_Indicator}|\u20E3/u.test(value)) {
+        return { emojiId: "0", emojiName: value };
+    }
+    throw Error("Colle un emoji (🔥), un ID Discord ou un code <:nom:ID> / <a:nom:ID>.");
+}
 
 function snapshot(status: CustomStatus | null | undefined): CustomStatus {
     return {
@@ -44,6 +59,17 @@ const settings = definePluginSettings({
         placeholder: "première phrase\nseconde phrase\n...",
         multiline: true,
         default: "phrase 1\nphrase 2\nphrase 3\nphrase 4\nphrase 5",
+        onChange: restart
+    },
+    emoji: {
+        type: OptionType.STRING,
+        description: "Emoji commun aux cinq statuts : colle un emoji, son ID ou son code <:nom:ID>. Vide : conserve l'emoji actuel. Discord doit autoriser l'utilisation de cet emoji sur ton compte.",
+        placeholder: "🔥 ou 123456789012345678 ou <:nom:123456789012345678>",
+        default: "",
+        isValid(value) {
+            try { parseEmoji(value); return true; }
+            catch (error) { return (error as Error).message; }
+        },
         onChange: restart
     },
     interval: {
@@ -115,9 +141,11 @@ async function tick(token: number) {
         if (!current(token) || UserStore.getCurrentUser()?.id !== userId) return;
         const text = phrases[index % phrases.length];
         const existing = snapshot(CustomStatusSettings.getSetting());
-        if (text !== existing.text) {
+        const emoji = parseEmoji(settings.store.emoji) ?? existing;
+        if (text !== existing.text || emoji.emojiId !== existing.emojiId || emoji.emojiName !== existing.emojiName) {
             await CustomStatusSettings.updateSetting({
-                ...existing, text, expiresAtMs: "0", createdAtMs: String(Date.now())
+                ...existing, text, emojiId: emoji.emojiId, emojiName: emoji.emojiName,
+                expiresAtMs: "0", createdAtMs: String(Date.now())
             });
         }
         index = (index + 1) % phrases.length;

@@ -12,7 +12,7 @@ const original = { text: 'Mon statut', emojiId: '0', emojiName: '🎮', expiresA
 function fixture({ initial = original, update = async () => {} } = {}) {
     let definitions, userId = 'self', sequence = 0, status = initial;
     const timers = new Map(), writes = [], errors = [];
-    const context = { module: { exports: {} }, Date,
+    const context = { module: { exports: {} }, Date, Intl,
         setTimeout(callback, delay) { const id = ++sequence; timers.set(id, { callback, delay }); return id; },
         clearTimeout(id) { timers.delete(id); },
         require(name) {
@@ -30,7 +30,10 @@ function fixture({ initial = original, update = async () => {} } = {}) {
             if (name === '@utils/Logger') return { Logger: class { error(...args) { errors.push(args); } } };
             if (name === '@utils/types') return { __esModule: true, default: value => value, OptionType: { BOOLEAN: 1, STRING: 2, SLIDER: 3 } };
             // No profile stores or HTTP methods: this plugin cannot change the bio.
-            if (name === '@webpack/common') return { UserStore: { getCurrentUser: () => ({ id: userId }) } };
+            if (name === '@webpack/common') return {
+                UserStore: { getCurrentUser: () => ({ id: userId }) },
+                EmojiStore: { getCustomEmojiById: id => id === '123456789012345678' ? { name: 'pulse' } : undefined }
+            };
             throw Error(name);
         }
     };
@@ -38,6 +41,7 @@ function fixture({ initial = original, update = async () => {} } = {}) {
     const plugin = context.module.exports.default;
     return { plugin, writes, timers, errors,
         change(key, value) { plugin.settings.store[key] = value; definitions[key]?.onChange?.(); },
+        validateEmoji(value) { return definitions.emoji.isValid(value); },
         user(id) { userId = id; },
         async next() { assert.equal(timers.size, 1); const [id, timer] = timers.entries().next().value; timers.delete(id); timer.callback(); await flush(); }
     };
@@ -94,5 +98,32 @@ test('long status text is bounded without splitting a Unicode character', async 
     f.change('phrases', '🎮'.repeat(150));
     f.plugin.start(); await flush();
     assert.equal(Array.from(f.writes[0].text).length, 128);
+    await f.plugin.stop();
+});
+
+test('emoji setting accepts Unicode, custom IDs and Discord markup, then restores the original emoji', async () => {
+    for (const [input, id, name] of [
+        ['🔥', '0', '🔥'], ['👨‍👩‍👧‍👦', '0', '👨‍👩‍👧‍👦'], ['🇫🇷', '0', '🇫🇷'],
+        ['123456789012345678', '123456789012345678', 'pulse'],
+        ['<:wave:234567890123456789>', '234567890123456789', 'wave'],
+        ['<a:dance:234567890123456789>', '234567890123456789', 'dance']
+    ]) {
+        const f = fixture();
+        assert.equal(f.validateEmoji(input), true);
+        f.change('emoji', input); f.plugin.start(); await flush();
+        assert.equal(f.writes[0].emojiId, id); assert.equal(f.writes[0].emojiName, name);
+        await f.plugin.stop(); assert.deepEqual(f.writes.at(-1), original);
+    }
+});
+
+test('changing only the emoji updates a matching status text; invalid inputs are rejected', async () => {
+    const f = fixture();
+    f.change('phrases', original.text); f.plugin.start(); await flush();
+    assert.equal(f.writes.length, 0);
+    f.change('emoji', '🔥'); await flush();
+    assert.equal(f.writes.at(-1).emojiName, '🔥');
+    for (const value of ['hello', '123', '<:x:123>', '🔥🔥', '99999999999999999999']) {
+        assert.notEqual(f.validateEmoji(value), true);
+    }
     await f.plugin.stop();
 });
