@@ -18,6 +18,7 @@ function store({cache,fetcher=async()=>new Response(JSON.stringify({format:1,use
         if(name==='@api/DataStore')return{get:async key=>key==='pulsecord.community-badges.v1'?cache:undefined,set:async(key,value)=>{saved.push(value);}};
         if(name==='@webpack/common')return{UserStore:{getCurrentUser:()=>({id:dev})}};
         if(name==='./community-registration')return{registerCommunityUser:async()=>{}};
+        if(name==='./community-network')return{communityFetch:context.fetch};
         if(name==='./community-core')return coreApi;
         throw Error(name);
     }};

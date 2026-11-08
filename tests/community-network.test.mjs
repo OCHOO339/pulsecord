@@ -1,0 +1,33 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import {readFile} from 'node:fs/promises';
+import {createRequire} from 'node:module';
+const require=createRequire(new URL('../upstream/equicord/package.json',import.meta.url));
+const compile=async file=>(await require('esbuild').transform(await readFile(file,'utf8'),{loader:'ts',format:'cjs'})).code;
+const nativeCode=await compile('packages/pulsecord/community-native.ts');
+const rendererCode=await compile('packages/pulsecord/community-network.ts');
+const registryUrl='https://registry.test';
+test('native registry IPC restricts destinations, operations, payload and response sizes',async()=>{
+ const calls=[];
+ const context={module:{exports:{}},Buffer,AbortSignal,fetch:async(url,init)=>{calls.push({url,init});return new Response('{}'.repeat(calls.length===3?128001:1));},require:name=>{assert.equal(name,'./community-core');return{registryUrl};}};
+ vm.runInNewContext(nativeCode,context);const {communityRequest}=context.module.exports;
+ await assert.rejects(communityRequest(null,'https://evil.test'),/operation/);
+ await assert.rejects(communityRequest(null,'users','body'),/payload/);
+ await assert.rejects(communityRequest(null,'register','x'.repeat(2049)),/payload/);
+ assert.equal(calls.length,0);
+ assert.equal((await communityRequest(null,'users')).status,200);
+ await communityRequest(null,'register','{}');
+ assert.equal(calls[0].url,registryUrl+'/v1/users');assert.equal(calls[1].url,registryUrl+'/v1/installations');
+ assert.equal(calls[1].init.redirect,'error');assert.equal(calls[1].init.credentials,'omit');
+ await assert.rejects(communityRequest(null,'remove','{}'),/too large/);
+});
+test('renderer uses the native registry bridge and ignores cancelled results',async()=>{
+ const calls=[];const controller=new AbortController();
+ const context={module:{exports:{}},Response,VencordNative:{pluginHelpers:{PulseCord:{communityRequest:async(...args)=>{calls.push(args);if(calls.length===2)controller.abort();return{status:200,body:'{}'};}}}},require:name=>{assert.equal(name,'./community-core');return{registryUrl};}};
+ vm.runInNewContext(rendererCode,context);const {communityFetch}=context.module.exports;
+ assert.equal((await communityFetch(registryUrl+'/v1/users')).status,200);
+ await assert.rejects(communityFetch('https://evil.test'));
+ await assert.rejects(communityFetch(registryUrl+'/v1/installations',{method:'POST',body:'{}',signal:controller.signal}));
+ assert.equal(calls.length,2);assert.equal(calls[1][0],'register');
+});

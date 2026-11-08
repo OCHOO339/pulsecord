@@ -11,6 +11,7 @@ test('automatic registration signs its public payload, caches renewal and never 
  const context={module:{exports:{}},crypto:webcrypto,TextEncoder,Uint8Array,btoa,atob,Date,fetch:async(url,options)=>{requests.push({url,options});return{ok:true};},require(name){
  if(name==='@api/DataStore')return{get:async key=>values.get(key),set:async(key,value)=>values.set(key,structuredClone(value))};
  if(name==='./community-core')return{registryUrl:'https://example.test',validUserId:id=>/^\d{18}$/.test(id)};
+ if(name==='./community-network')return{communityFetch:context.fetch};
  throw Error(name);
  }};
  vm.runInNewContext(code,context);const {registerCommunityUser}=context.module.exports;

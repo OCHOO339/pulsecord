@@ -1,7 +1,7 @@
 {
   "name": "pulsecord-workspace",
   "private": true,
-  "version": "0.4.4",
+  "version": "0.4.5",
   "description": "PulseCord local Discord mod installer",
   "author": "PulseCord contributors",
   "license": "GPL-3.0-only",

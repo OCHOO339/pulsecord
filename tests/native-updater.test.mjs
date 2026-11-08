@@ -53,6 +53,7 @@ async function fixture(t, fault) {
         },
         require(name) {
             if (name === './maintenance-native') return {};
+            if (name === './community-native') return {};
             if (name === '@pulsecord/launcher-state') return { saveBundle: async () => {} };
             if (name === '@main/utils/constants') return { DATA_DIR: path.join(root, 'data') };
             if (name === '@pulsecord/brand') return { brand: { version: '1.0.0', updates: config } };

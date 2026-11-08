@@ -2,6 +2,7 @@
 import * as DataStore from "@api/DataStore";
 import { UserStore } from "@webpack/common";
 import { registerCommunityUser } from "./community-registration";
+import { communityFetch } from "./community-network";
 import { communityCacheMs, CommunityRegistry, fetchApprovedUsers } from "./community-core";
 
 export const communityRegistry = new CommunityRegistry();
@@ -37,7 +38,7 @@ export function refreshCommunity() {
                 if (!active || token !== generation) return;
                 if (automatic && UserStore.getCurrentUser()?.id === id) communityRegistry.setLocalUser(id);
             }
-            const users = await fetchApprovedUsers(fetch, signal);
+            const users = await fetchApprovedUsers(communityFetch, signal);
             if (!active || token !== generation) return;
             communityRegistry.replace(users); checkedAt = Date.now();
             await DataStore.set(key, { format: 1, checkedAt, users }).catch(() => {});

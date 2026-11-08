@@ -13,6 +13,7 @@ import { promises as fs } from "original-fs";
 import { basename, join, resolve, sep } from "path";
 import { saveBundle } from "@pulsecord/launcher-state";
 export { backupConfiguration, restoreConfiguration, revealLastBackup } from "./maintenance-native";
+export { communityRequest } from "./community-native";
 
 interface Release {
     version: string; bundleId: string; bundleUrl: string; sha256: string; size: number; changelog: string;

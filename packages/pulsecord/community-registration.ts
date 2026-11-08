@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import * as DataStore from "@api/DataStore";
 import { registryUrl, validUserId } from "./community-core";
+import { communityFetch } from "./community-network";
 const key = "pulsecord.community-installation.v1";
 interface Installation { format: 1; publicKey: string; privateKey: string; userId?: string; registeredAt?: number }
 const encode = (bytes: ArrayBuffer) => btoa(String.fromCharCode(...new Uint8Array(bytes))).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
@@ -26,7 +27,7 @@ async function updateRegistration(userId: string, remove = false, signal?: Abort
     const signingKey = await crypto.subtle.importKey("pkcs8", decode(installation.privateKey), { name: "Ed25519" }, false, ["sign"]);
     const message = `pulsecord-badge-v1\n${method}\n${installation.publicKey}\n${userId}\n${timestamp}`;
     const signature = encode(await crypto.subtle.sign("Ed25519", signingKey, new TextEncoder().encode(message)));
-    const response = await fetch(`${registryUrl}/v1/installations`, { method, credentials: "omit", referrerPolicy: "no-referrer", signal,
+    const response = await communityFetch(`${registryUrl}/v1/installations`, { method, credentials: "omit", referrerPolicy: "no-referrer", signal,
         headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, publicKey: installation.publicKey, timestamp, signature }) });
     if (!response.ok) throw Error(`Inscription automatique indisponible (${response.status}).`);
     if (remove) { delete installation.userId; delete installation.registeredAt; }

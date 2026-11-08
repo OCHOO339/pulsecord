@@ -1,11 +1,14 @@
 # PulseCord
 
+- Badge Pulse User automatique au lancement, registre public signé et désactivation possible dans Communauté ; les deux comptes développeurs conservent Pulse Dev.
+- Connexion du registre par le canal natif Electron, avec routes limitées et réponses bornées, compatible avec les protections réseau de Discord.
+
 - Workflow Windows, Ubuntu et macOS avec publication des installateurs EXE, AppImage, archive Linux et DMG universel Intel/Apple Silicon ; contrôle du paquet macOS et flux de mise à jour signés par architecture.
 
 - Support Linux x64 pour Discord Flatpak : installateur AppImage et archive portable, copie privée du runtime, lanceur dans le menu des applications et conservation du lanceur officiel Flatpak.
 - Flux de mises à jour signées distincts pour Windows et Linux, avec publication commune après validation des deux plateformes.
 
-- Badges Pulse Dev et Pulse User sur les profils, messages et listes de membres ; inscription volontaire et validation via le registre GitHub, avec cache local de six heures.
+- Badges Pulse Dev et Pulse User sur les profils, messages et listes de membres, avec cache local de six heures.
 
 - Optimisation de l'interface pendant les jeux et le vocal : règles CSS des emojis remplacées par une règle commune, traitement des mutations ciblé et suspendu sans focus, lectures et écritures de polices regroupées.
 - Animations en pause lorsque Discord perd le focus ; le curseur fluide ne mesure plus l'éditeur pendant les interactions hors de la zone de message.
