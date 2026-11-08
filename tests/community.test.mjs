@@ -12,10 +12,12 @@ const uiCode=await compile('packages/pulsecord/community.tsx');
 const dev='1366054228480753755',coDev='669936721730863105',friend='223456789012345678',other='123456789012345678';
 function core(){const context={module:{exports:{}},URLSearchParams,TextDecoder,Uint8Array};vm.runInNewContext(coreCode,context);return context.module.exports;}
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
-function store({cache,fetcher=async()=>new Response(JSON.stringify([{name:'pulsecord-user:'+friend}]))}={}){
+function store({cache,fetcher=async()=>new Response(JSON.stringify({format:1,users:[friend]}))}={}){
     let calls=0;const saved=[];const coreApi=core();
     const context={module:{exports:{}},Date,AbortController,setTimeout,clearTimeout,fetch:async(...args)=>{calls++;return fetcher(...args);},require(name){
-        if(name==='@api/DataStore')return{get:async()=>cache,set:async(key,value)=>{saved.push(value);}};
+        if(name==='@api/DataStore')return{get:async key=>key==='pulsecord.community-badges.v1'?cache:undefined,set:async(key,value)=>{saved.push(value);}};
+        if(name==='@webpack/common')return{UserStore:{getCurrentUser:()=>({id:dev})}};
+        if(name==='./community-registration')return{registerCommunityUser:async()=>{}};
         if(name==='./community-core')return coreApi;
         throw Error(name);
     }};
@@ -26,7 +28,7 @@ test('configured developers keep Dev independently of the registry; registered u
     const api=core(),registry=new api.CommunityRegistry();
     assert.equal(registry.role(dev),'dev');assert.equal(registry.role(friend),undefined);
     assert.equal(registry.role(coDev),'dev');
-    registry.replace(api.approvedIds([{name:'pulsecord-user:'+friend},{name:'pulsecord-dev:'+other},{name:'pulsecord-user:invalid'}]));
+    registry.replace([friend]);
     assert.equal(registry.role(friend),'user');assert.equal(registry.role(other),undefined);
     registry.replace([dev,friend]);assert.equal(registry.role(dev),'dev');
     assert.throws(()=>registry.replace(['invalid']));assert.equal(registry.role(friend),'user');
@@ -38,14 +40,13 @@ test('configured developers keep Dev independently of the registry; registered u
 test('registry fetch is fixed, anonymous, bounded and excludes unapproved claims',async()=>{
     const api=core();let requests=0;
     const users=await api.fetchApprovedUsers(async(url,options)=>{
-        requests++;assert.equal(url,api.registryUrl+'?per_page=100&page=1');assert.equal(options.credentials,'omit');
-        return new Response(JSON.stringify([{name:'pulsecord-user:'+friend},{name:'pulsecord-dev:'+other}]));
+        requests++;assert.equal(url,api.registryUrl+'/v1/users');assert.equal(options.credentials,'omit');
+        return new Response(JSON.stringify({format:1,users:[friend]}));
     });
     assert.deepEqual([...users],[friend]);assert.equal(requests,1);
     await assert.rejects(api.fetchApprovedUsers(async()=>new Response('x'.repeat(256001))),/volumineux/);
-    await assert.rejects(api.fetchApprovedUsers(async()=>new Response('',{status:403})),/Limite GitHub/);
-    const url=new URL(api.registrationUrl(friend));assert.equal(url.hostname,'github.com');assert.ok(url.searchParams.get('body').includes(friend));
-    assert.throws(()=>api.registrationUrl('bad'));
+    await assert.rejects(api.fetchApprovedUsers(async()=>new Response('',{status:403})),/Limite du registre/);
+    assert.equal(api.validUserId(friend),true);assert.equal(api.validUserId('bad'),false);
 });
 
 test('six-hour cache avoids network; offline refresh preserves verified badges',async()=>{
@@ -82,6 +83,7 @@ test('badge surfaces use the same roles, display the Pulse logo and unregister c
     assert.equal(badge.getBadges({userId:friend})[0].name,'Pulse User');assert.equal(badge.getBadges({userId:other}).length,0);
     assert.equal(ui.PulseCommunityBadge({userId:friend}).props['aria-label'],'Pulse User');
     assert.equal(ui.PulseCommunityBadge({userId:dev}).props['aria-label'],'Pulse Dev');assert.equal(ui.PulseCommunityBadge({userId:other}),null);
+    assert.ok(!JSON.stringify(ui.CommunityTab()).includes('Demander le badge'));
     assert.equal(messages.size,1);assert.equal(members.size,1);
     const renderMember=members.get('pulsecord-community');
     assert.equal(renderMember({type:'guild',user:{id:friend}}).props['aria-label'],'Pulse User');

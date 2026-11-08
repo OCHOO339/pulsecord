@@ -1,4 +1,6 @@
-# Badges de communauté PulseCord
+# Ancien registre GitHub des badges PulseCord
+
+Ce document décrit le fonctionnement précédent. La nouvelle inscription automatique est décrite dans [AUTOMATIC-BADGES.md](AUTOMATIC-BADGES.md).
 
 - **Pulse Dev** : réservé aux IDs `1366054228480753755` et `669936721730863105`, définis dans le code du client.
 - **Pulse User** : attribué aux comptes inscrits et approuvés dans le registre GitHub public.

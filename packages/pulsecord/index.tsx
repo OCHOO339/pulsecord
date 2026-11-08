@@ -20,6 +20,7 @@ import { SettingsBanner } from "./settings-banner";
 import { setBackgroundEconomy } from "./performance";
 import { setSmoothTyping } from "./smooth-typing";
 import { CommunityTab, startCommunityBadges, stopCommunityBadges } from "./community";
+import { startCommunityRegistry } from "./community-store";
 
 export function PulseCordIcon({ width = 20, height = 20 }: IconProps) {
     return <img src={brand.logo} width={width} height={height} alt="" />;
@@ -64,7 +65,7 @@ const Performance = ErrorBoundary.wrap(() => {
         <h2>Diagnose a problem</h2><p>Close Discord, then launch it with <code>--vanilla</code>. This bypasses the mod without deleting your settings. Re-enable plugins individually after restarting normally.</p>
         <p>Patch compatibility remains dependent on the installed Discord build. A successful compilation is not a runtime compatibility check.</p></section>;
 }, { noop: false });
-const About = ErrorBoundary.wrap(() => <section className="pulsecord"><h1>About {brand.name}</h1><p>Independent Discord modification. Not affiliated with Discord, Equicord or Vencord.</p><p>Based on Equicord and Vencord, © their contributors and Vendicated, GPL-3.0-or-later. Installer archive format derived from Vencord Installer, GPL-3.0. PulseCord modifications © PulseCord contributors.</p><p>Plugins run with renderer privileges and are not isolated from Discord. Install only reviewed source. PulseCord adds no token collection, cloud service or telemetry.</p></section>, { noop: false });
+const About = ErrorBoundary.wrap(() => <section className="pulsecord"><h1>About {brand.name}</h1><p>Independent Discord modification. Not affiliated with Discord, Equicord or Vencord.</p><p>Based on Equicord and Vencord, © their contributors and Vendicated, GPL-3.0-or-later. Installer archive format derived from Vencord Installer, GPL-3.0. PulseCord modifications © PulseCord contributors.</p><p>Plugins run with renderer privileges and are not isolated from Discord. Install only reviewed source. PulseCord collects no Discord tokens or messages. Automatic badges share your Discord ID with the public PulseCord registry; sharing can be disabled in Community settings.</p></section>, { noop: false });
 const entries = [
     { key: "pulsecord_community", title: "Communauté", Component: CommunityTab },
     { key: "pulsecord_quickcss", title: "QuickCSS", Component: QuickCSS },
@@ -88,7 +89,7 @@ export default definePlugin({
     wrapDmSection,
     wrapDmSectionHeight,
     renderOfficialDm: () => <OfficialDmRow />,
-    flux: { CHANNEL_SELECT: handleInboxNavigation, GUILD_SELECT: handleInboxNavigation },
+    flux: { CHANNEL_SELECT: handleInboxNavigation, GUILD_SELECT: handleInboxNavigation, CONNECTION_OPEN: () => { void startCommunityRegistry(); } },
     start() { SettingsPlugin.customEntries.push(...entries); appearance = document.createElement("style"); document.head.append(appearance); apply(); brandFavicons(brand.logo); showStartup(brand.splashLogo, settings.store.startupAnimation && !settings.store.reduceMotion); startOfficialInbox(); startHomeNavigation(); startCommunityBadges(); startUpdates(id => { if (!settings.store.updateNotifications || settings.store.lastNotifiedUpdate === id) return false; settings.store.lastNotifiedUpdate = id; return true; }, next => { if (next.nextBuild) addInboxUpdate(next.nextBuild, next.changelog); }, openOfficialInbox); },
     stop() { stopCommunityBadges(); document.documentElement.removeAttribute("data-pc-reduce-motion"); setSmoothTyping(false); setBackgroundEconomy(false); stopHomeNavigation(); stopOfficialInbox(); stopUpdates(); stopStartup(); restoreBrandFavicons(); for (const entry of entries) { const i = SettingsPlugin.customEntries.indexOf(entry); if (i >= 0) SettingsPlugin.customEntries.splice(i, 1); } appearance?.remove(); appearance = undefined; }
 });

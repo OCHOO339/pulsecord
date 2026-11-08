@@ -9,6 +9,8 @@ const files = {};
 async function add(file) { files[file.replaceAll('\\', '/')] = new Uint8Array(await readFile(file)); }
 async function tree(dir) { for (const entry of await readdir(dir, { withFileTypes: true })) { const name = `${dir}/${entry.name}`; if (entry.isDirectory()) await tree(name); else if (entry.isFile()) await add(name); } }
 for (const dir of ['packages', 'scripts', 'tests', 'themes', 'docs', 'site', 'assets', '.github']) await tree(dir);
+for (const dir of ['worker', 'drizzle', 'tests']) await tree(`services/community-registry/${dir}`);
+for (const file of ['scripts/build.mjs', 'scripts/validate-artifact.mjs', '.openai/hosting.json', 'package.json']) await add(`services/community-registry/${file}`);
 for (const file of ['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'brand.json', 'updates.json', 'upstream.lock.json', 'pulse.png', 'LICENSE', 'NOTICE.md', 'README.md', 'CHANGELOG.md', '.gitignore']) await add(file);
 const lock = JSON.parse(await readFile('upstream.lock.json', 'utf8'));
 for (const [name, entry] of Object.entries(lock)) {

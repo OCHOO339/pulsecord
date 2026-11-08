@@ -4,8 +4,7 @@ import { addMessageDecoration, removeMessageDecoration } from "@api/MessageDecor
 import { addMemberListDecorator, removeMemberListDecorator } from "@api/MemberListDecorators";
 import { React, UserStore } from "@webpack/common";
 import { brand } from "./brand";
-import { registrationUrl } from "./community-core";
-import { communityRegistry, communityStatus, getCommunityStatus, refreshCommunity, startCommunityRegistry, stopCommunityRegistry, subscribeCommunityStatus } from "./community-store";
+import { communityRegistry, communityStatus, getCommunityStatus, refreshCommunity, setAutomaticCommunity, startCommunityRegistry, stopCommunityRegistry, subscribeCommunityStatus } from "./community-store";
 
 export function PulseCommunityBadge({ userId, compact = false }: { userId: string; compact?: boolean }) {
     React.useSyncExternalStore(communityRegistry.subscribe, communityRegistry.snapshot);
@@ -45,15 +44,17 @@ export function stopCommunityBadges() {
 }
 export function CommunityTab() {
     React.useSyncExternalStore(subscribeCommunityStatus, getCommunityStatus);
-    const { checkedAt, error, busy } = communityStatus();
+    const { checkedAt, error, busy, automatic } = communityStatus();
     const id = UserStore.getCurrentUser()?.id;
     return <section className="pulsecord"><h1>Communauté PulseCord</h1>
         <p>Les badges Pulse Dev et Pulse User sont visibles dans PulseCord, sur les profils, les messages et la liste des membres.</p>
-        {id && <p>Ton badge : <PulseCommunityBadge userId={id} />{!communityRegistry.role(id) && "Aucune inscription validée."}</p>}
-        <p>Pour obtenir Pulse User, envoie une demande GitHub. Un responsable du dépôt doit la valider. Ton ID Discord sera public si tu soumets la demande ; aucun message ni jeton Discord n'est envoyé.</p>
-        <div className="pc-update-actions"><button disabled={!id} onClick={() => { if (id) void VencordNative.native.openExternal(registrationUrl(id)); }}>Demander le badge Pulse User</button>
+        {id && <p>Ton badge : <PulseCommunityBadge userId={id} /></p>}
+        <p>Pulse User est attribué automatiquement au démarrage, sans demande ni validation. Les comptes développeurs gardent Pulse Dev.</p>
+        <label><input type="checkbox" checked={automatic} onChange={event => { void setAutomaticCommunity(event.target.checked); }} /> Partager automatiquement mon badge depuis cet appareil</label>
+        <p>Le registre public reçoit ton ID Discord et une clé publique d’installation. La clé privée reste sur ton appareil. Aucun message ni jeton Discord n’est envoyé.</p>
+        <div className="pc-update-actions">
             <button disabled={busy} onClick={() => { void refreshCommunity(); }}>{busy ? "Actualisation…" : "Actualiser les badges"}</button></div>
-        <p>Le registre est conservé localement pendant six heures. Les badges indiquent une inscription validée, pas une présence en ligne ni une utilisation en direct.</p>
+        <p>Les badges sont actualisés toutes les cinq minutes, avec un cache hors ligne. Une inscription expire après 30 jours sans renouvellement. Pulse User indique une inscription déclarée par un client ; ce n’est pas une identité Discord vérifiée.</p>
         {checkedAt > 0 && <p>Dernière synchronisation : {new Date(checkedAt).toLocaleString()}</p>}
         {error && <p role="status">{error}</p>}
     </section>;
