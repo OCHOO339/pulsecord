@@ -7,7 +7,7 @@ import { definePluginSettings } from "@api/Settings";
 import { getUserSettingLazy } from "@api/UserSettings";
 import { Logger } from "@utils/Logger";
 import definePlugin, { OptionType } from "@utils/types";
-import { EmojiStore, UserStore } from "@webpack/common";
+import { EmojiStore, FluxDispatcher, UserStore } from "@webpack/common";
 
 const logger = new Logger("StatusRotator");
 const MAX_PHRASES = 5;
@@ -79,7 +79,7 @@ const settings = definePluginSettings({
     },
     interval: {
         type: OptionType.SLIDER,
-        description: "Délai entre deux changements de statut (secondes). Discord peut imposer un délai supplémentaire.",
+        description: "Délai souhaité après confirmation du statut par Discord (secondes). En cas de limite, la rotation attend automatiquement l’enregistrement avant de continuer.",
         markers: [3, 5, 10, 15, 30, 60],
         default: 5,
         stickToMarkers: false,
@@ -99,6 +99,44 @@ let index = 0;
 let emojiIndex = 0;
 let failures = 0;
 let retryUntil = 0;
+let unconfirmed = false;
+let confirmationLogged = false;
+
+interface SettingsUpdate {
+    local?: boolean;
+    wasSaved?: boolean;
+    settings?: { type?: number; proto?: { status?: { customStatus?: CustomStatus } } };
+}
+
+// updateSetting resolves after the optimistic local edit, not the HTTP save.
+// Discord retries rate-limited saves itself. Keep this phrase until the server
+// acknowledges it instead of overwriting its pending save with the next phrase.
+async function persistStatus(status: CustomStatus, userId: string) {
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    let receive: (event: SettingsUpdate) => void;
+    let rejectSave: (error: Error) => void;
+    const saved = new Promise<void>((resolve, reject) => {
+        rejectSave = reject;
+        receive = event => {
+            if (UserStore.getCurrentUser()?.id !== userId) return reject(Error("Le compte actif a changé."));
+            if (event.local !== false || !event.wasSaved || event.settings?.type !== 1) return;
+            const remoteStatus = event.settings.proto?.status;
+            if (!remoteStatus) return;
+            const confirmed = snapshot(remoteStatus.customStatus);
+            if (confirmed.text === status.text && confirmed.emojiId === status.emojiId && (status.emojiId !== "0" || confirmed.emojiName === status.emojiName))
+                resolve();
+        };
+        FluxDispatcher.subscribe("USER_SETTINGS_PROTO_UPDATE", receive);
+        timeout = setTimeout(() => reject(Error("Discord n’a pas confirmé l’enregistrement du statut.")), 120000);
+    });
+    try {
+        void CustomStatusSettings.updateSetting(status).catch(error => rejectSave(error));
+        await saved;
+    } finally {
+        if (timeout !== undefined) clearTimeout(timeout);
+        FluxDispatcher.unsubscribe("USER_SETTINGS_PROTO_UPDATE", receive!);
+    }
+}
 // Serialize rotation and restoration, including when stop/start occurs during a request.
 let pending: Promise<void> = Promise.resolve();
 
@@ -149,11 +187,17 @@ async function tick(token: number) {
         const existing = snapshot(CustomStatusSettings.getSetting());
         const emojis = parseEmojis(settings.store.emoji);
         const emoji = emojis[emojiIndex % emojis.length] ?? existing;
-        if (text !== existing.text || emoji.emojiId !== existing.emojiId || emoji.emojiName !== existing.emojiName) {
-            await CustomStatusSettings.updateSetting({
+        if (unconfirmed || text !== existing.text || emoji.emojiId !== existing.emojiId || emoji.emojiName !== existing.emojiName) {
+            unconfirmed = true;
+            await persistStatus({
                 ...existing, text, emojiId: emoji.emojiId, emojiName: emoji.emojiName,
                 expiresAtMs: "0", createdAtMs: String(Date.now())
-            });
+            }, userId);
+            unconfirmed = false;
+            if (!confirmationLogged) {
+                logger.info("Enregistrement du statut confirmé par Discord.");
+                confirmationLogged = true;
+            }
         }
         // An edit/stop during the request must not advance the new rotation.
         if (!current(token)) return;
@@ -192,6 +236,7 @@ export default definePlugin({
         running = true;
         index = 0;
         emojiIndex = 0;
+        confirmationLogged = false;
         restart();
     },
 
@@ -205,7 +250,8 @@ export default definePlugin({
             if (!settings.store.restoreOnStop || !original || !userId || UserStore.getCurrentUser()?.id !== userId) return;
             try {
                 const expired = Number(original.expiresAtMs) > 0 && Number(original.expiresAtMs) <= Date.now();
-                await CustomStatusSettings.updateSetting(expired ? snapshot(null) : snapshot(original));
+                await persistStatus(expired ? snapshot(null) : snapshot(original), userId);
+                unconfirmed = false;
                 delete settings.store.originalStatus;
                 delete settings.store.originalUserId;
             } catch (error) {

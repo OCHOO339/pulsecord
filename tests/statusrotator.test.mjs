@@ -9,9 +9,11 @@ const { code } = await transform(await readFile('packages/statusrotator/index.ts
 const flush = async () => { for (let i = 0; i < 20; i++) await Promise.resolve(); };
 const original = { text: 'Mon statut', emojiId: '0', emojiName: '🎮', expiresAtMs: '0' };
 
-function fixture({ initial = original, update = async () => {} } = {}) {
+function fixture({ initial = original, update = async () => {}, acknowledge = true } = {}) {
     let definitions, userId = 'self', sequence = 0, status = initial;
     const timers = new Map(), writes = [], errors = [];
+    const listeners = new Set();
+    const emit = event => { for (const listener of [...listeners]) listener(event); };
     const context = { module: { exports: {} }, Date, Intl,
         setTimeout(callback, delay) { const id = ++sequence; timers.set(id, { callback, delay }); return id; },
         clearTimeout(id) { timers.delete(id); },
@@ -24,13 +26,17 @@ function fixture({ initial = original, update = async () => {} } = {}) {
                 assert.equal(group, 'status'); assert.equal(key, 'customStatus');
                 return { getSetting: () => status, async updateSetting(value) {
                     writes.push(JSON.parse(JSON.stringify(value)));
-                    await update(value); status = value;
+                    status = value;
+                    emit({local:true,settings:{type:1,proto:{status:{customStatus:value}}}});
+                    await update(value);
+                    if (acknowledge) emit({local:false,wasSaved:true,settings:{type:1,proto:{status:{customStatus:value}}}});
                 } };
             } };
-            if (name === '@utils/Logger') return { Logger: class { error(...args) { errors.push(args); } } };
+            if (name === '@utils/Logger') return { Logger: class { info() {} error(...args) { errors.push(args); } } };
             if (name === '@utils/types') return { __esModule: true, default: value => value, OptionType: { BOOLEAN: 1, STRING: 2, SLIDER: 3 } };
             // No profile stores or HTTP methods: this plugin cannot change the bio.
             if (name === '@webpack/common') return {
+                FluxDispatcher: {subscribe:(_event,listener)=>listeners.add(listener),unsubscribe:(_event,listener)=>listeners.delete(listener)},
                 UserStore: { getCurrentUser: () => ({ id: userId }) },
                 EmojiStore: { getCustomEmojiById: id => id === '123456789012345678' ? { name: 'pulse' } : undefined }
             };
@@ -39,7 +45,7 @@ function fixture({ initial = original, update = async () => {} } = {}) {
     };
     vm.runInNewContext(code, context);
     const plugin = context.module.exports.default;
-    return { plugin, writes, timers, errors,
+    return { plugin, writes, timers, errors, listeners, emit,
         change(key, value) { plugin.settings.store[key] = value; definitions[key]?.onChange?.(); },
         validateEmoji(value) { return definitions.emoji.isValid(value); },
         user(id) { userId = id; },
@@ -59,6 +65,30 @@ test('StatusRotator rotates only custom status, preserves emoji and restores the
     await f.plugin.stop();
     assert.deepEqual(f.writes.at(-1), original);
     assert.equal(f.timers.size, 0);
+});
+
+test('local changes and unrelated saves never advance rotation; the matching server acknowledgement does', async () => {
+    const f=fixture({acknowledge:false});
+    f.change('phrases','un\ndeux');f.change('restoreOnStop',false);
+    f.plugin.start();await flush();
+    assert.equal(f.writes.length,1);assert.equal(f.listeners.size,1);
+    assert.equal([...f.timers.values()][0].delay,120000);
+    const first=f.writes[0];
+    f.emit({local:true,wasSaved:true,settings:{type:1,proto:{status:{customStatus:first}}}});
+    f.emit({local:false,wasSaved:true,settings:{type:1,proto:{status:{customStatus:{...first,text:'autre'}}}}});
+    await flush();assert.equal(f.writes.length,1);assert.equal(f.listeners.size,1);
+    f.emit({local:false,wasSaved:true,settings:{type:1,proto:{status:{customStatus:first}}}});
+    await flush();assert.equal(f.listeners.size,0);assert.equal([...f.timers.values()][0].delay,5000);
+    await f.next();assert.equal(f.writes[1].text,'deux');
+    f.emit({local:false,wasSaved:true,settings:{type:1,proto:{status:{customStatus:f.writes[1]}}}});
+    await flush();await f.plugin.stop();assert.equal(f.timers.size,0);assert.equal(f.listeners.size,0);
+});
+
+test('a missing server acknowledgement times out visibly and cleans up its listener',async()=>{
+    const f=fixture({acknowledge:false});f.change('restoreOnStop',false);
+    f.plugin.start();await flush();await f.next();
+    assert.equal(f.writes.length,1);assert.equal(f.errors.length,1);assert.equal(f.listeners.size,0);
+    await f.plugin.stop();assert.equal(f.timers.size,0);
 });
 
 test('stop during an update serializes restoration and never reschedules rotation', async () => {
