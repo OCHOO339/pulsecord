@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { resolve, delimiter } from 'node:path';
+import { resolve, delimiter, dirname } from 'node:path';
 import { createRequire } from 'node:module';
 import { prepareWindowsTools } from './windows-tools.mjs';
 const require = createRequire(import.meta.url);
@@ -8,7 +8,10 @@ const assets = spawnSync(require('electron'), ['scripts/brand-assets.cjs'], { st
 if (assets.status !== 0) process.exit(assets.status ?? 1);
 const cache = process.platform === 'win32' ? await prepareWindowsTools() : undefined;
 function build(extra = []) {
-    const result = spawnSync(process.execPath, ['node_modules/electron-builder/cli.js', '--config', 'packages/installer/builder.json', '--publish', 'never', ...extra], {
+    // The Linux runtime already passed Electron's package postinstall checksum
+    // verification. Reuse it instead of downloading the same archive again.
+    const localElectron = process.platform === 'linux' ? ['--config.electronDist=' + dirname(require('electron'))] : [];
+    const result = spawnSync(process.execPath, ['node_modules/electron-builder/cli.js', '--config', 'packages/installer/builder.json', '--publish', 'never', ...localElectron, ...extra], {
         stdio: 'inherit', env: { ...process.env, ...(cache ? { ELECTRON_BUILDER_CACHE: cache } : {}), PATH: resolve('scripts/bin') + delimiter + process.env.PATH }
     });
     if (result.error) throw result.error;
