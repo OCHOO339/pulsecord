@@ -11,10 +11,12 @@ const original = { text: 'Mon statut', emojiId: '0', emojiName: '🎮', expiresA
 
 function fixture({ initial = original, update = async () => {}, acknowledge = true } = {}) {
     let definitions, userId = 'self', sequence = 0, status = initial;
+    let now = Date.now();
+    class Clock extends Date { static now() { return now; } }
     const timers = new Map(), writes = [], errors = [];
     const listeners = new Set();
     const emit = event => { for (const listener of [...listeners]) listener(event); };
-    const context = { module: { exports: {} }, Date, Intl,
+    const context = { module: { exports: {} }, Date: Clock, Intl,
         setTimeout(callback, delay) { const id = ++sequence; timers.set(id, { callback, delay }); return id; },
         clearTimeout(id) { timers.delete(id); },
         require(name) {
@@ -46,6 +48,7 @@ function fixture({ initial = original, update = async () => {}, acknowledge = tr
     vm.runInNewContext(code, context);
     const plugin = context.module.exports.default;
     return { plugin, writes, timers, errors, listeners, emit,
+        elapse(ms) { now += ms; },
         change(key, value) { plugin.settings.store[key] = value; definitions[key]?.onChange?.(); },
         validateEmoji(value) { return definitions.emoji.isValid(value); },
         user(id) { userId = id; },
@@ -89,6 +92,17 @@ test('a missing server acknowledgement times out visibly and cleans up its liste
     f.plugin.start();await flush();await f.next();
     assert.equal(f.writes.length,1);assert.equal(f.errors.length,1);assert.equal(f.listeners.size,0);
     await f.plugin.stop();assert.equal(f.timers.size,0);
+});
+
+test('the selected interval includes server latency without sending before confirmation',async()=>{
+    for(const [interval,latency,remaining] of [[3,0,3000],[3,1500,1500],[3,11000,0],[5,11000,0]]){
+        const f=fixture({acknowledge:false});f.change('interval',interval);f.change('restoreOnStop',false);
+        f.plugin.start();await flush();f.elapse(latency);
+        assert.equal(f.writes.length,1);assert.equal(f.listeners.size,1);
+        f.emit({local:false,wasSaved:true,settings:{type:1,proto:{status:{customStatus:f.writes[0]}}}});
+        await flush();assert.equal([...f.timers.values()][0].delay,remaining);
+        await f.plugin.stop();assert.equal(f.timers.size,0);assert.equal(f.listeners.size,0);
+    }
 });
 
 test('stop during an update serializes restoration and never reschedules rotation', async () => {

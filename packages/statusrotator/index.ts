@@ -79,7 +79,7 @@ const settings = definePluginSettings({
     },
     interval: {
         type: OptionType.SLIDER,
-        description: "Délai souhaité après confirmation du statut par Discord (secondes). En cas de limite, la rotation attend automatiquement l’enregistrement avant de continuer.",
+        description: "Intervalle souhaité entre deux envois (secondes). Le temps de confirmation est inclus ; la rotation attend toujours Discord avant de continuer.",
         markers: [3, 5, 10, 15, 30, 60],
         default: 5,
         stickToMarkers: false,
@@ -159,11 +159,13 @@ function getPhrases() {
         .slice(0, MAX_PHRASES).map(phrase => Array.from(phrase).slice(0, MAX_STATUS_LENGTH).join(""));
 }
 
-function schedule(token: number) {
+function schedule(token: number, startedAt = Date.now()) {
     if (!current(token)) return;
     clearTimer();
     const interval = Number.isFinite(settings.store.interval) ? Math.max(3, settings.store.interval) : 5;
-    timer = setTimeout(() => { void enqueue(() => tick(token)); }, Math.max(interval * 1000, retryUntil - Date.now()));
+    const now = Date.now();
+    const remaining = interval * 1000 - Math.max(0, now - startedAt);
+    timer = setTimeout(() => { void enqueue(() => tick(token)); }, Math.max(0, remaining, retryUntil - now));
 }
 
 function captureOriginal(userId: string) {
@@ -180,6 +182,7 @@ async function tick(token: number) {
     const userId = UserStore.getCurrentUser()?.id;
     const phrases = getPhrases();
     if (!userId || !phrases.length) return schedule(token);
+    const startedAt = Date.now();
     try {
         captureOriginal(userId);
         if (!current(token) || UserStore.getCurrentUser()?.id !== userId) return;
@@ -212,7 +215,7 @@ async function tick(token: number) {
         retryUntil = Date.now() + delay * 1000;
         logger.error("Échec du changement de statut ; nouvelle tentative différée", error);
     } finally {
-        schedule(token);
+        schedule(token, startedAt);
     }
 }
 
