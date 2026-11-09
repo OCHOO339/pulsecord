@@ -14,7 +14,7 @@ function fixture({ initial = original, update = async () => {}, acknowledge = tr
     let now = Date.now();
     class Clock extends Date { static now() { return now; } }
     const timers = new Map(), writes = [], errors = [];
-    const listeners = new Set();
+    const listeners = new Set(), editListeners = new Set();
     const emit = event => { for (const listener of [...listeners]) listener(event); };
     const context = { module: { exports: {} }, Date: Clock, Intl,
         setTimeout(callback, delay) { const id = ++sequence; timers.set(id, { callback, delay }); return id; },
@@ -38,7 +38,7 @@ function fixture({ initial = original, update = async () => {}, acknowledge = tr
             if (name === '@utils/types') return { __esModule: true, default: value => value, OptionType: { BOOLEAN: 1, STRING: 2, SLIDER: 3 } };
             // No profile stores or HTTP methods: this plugin cannot change the bio.
             if (name === '@webpack/common') return {
-                FluxDispatcher: {subscribe:(_event,listener)=>listeners.add(listener),unsubscribe:(_event,listener)=>listeners.delete(listener)},
+                FluxDispatcher: {subscribe:(event,listener)=>(event==='USER_SETTINGS_PROTO_UPDATE_EDIT_INFO'?editListeners:listeners).add(listener),unsubscribe:(event,listener)=>(event==='USER_SETTINGS_PROTO_UPDATE_EDIT_INFO'?editListeners:listeners).delete(listener)},
                 UserStore: { getCurrentUser: () => ({ id: userId }) },
                 EmojiStore: { getCustomEmojiById: id => id === '123456789012345678' ? { name: 'pulse' } : undefined }
             };
@@ -47,12 +47,13 @@ function fixture({ initial = original, update = async () => {}, acknowledge = tr
     };
     vm.runInNewContext(code, context);
     const plugin = context.module.exports.default;
-    return { plugin, writes, timers, errors, listeners, emit,
+    return { plugin, writes, timers, errors, listeners, editListeners, emit,
+        rateLimit() { for(const listener of [...editListeners]) listener({settings:{type:1,changes:{rateLimited:true}}}); },
         elapse(ms) { now += ms; },
         change(key, value) { plugin.settings.store[key] = value; definitions[key]?.onChange?.(); },
         validateEmoji(value) { return definitions.emoji.isValid(value); },
         user(id) { userId = id; },
-        async next() { assert.equal(timers.size, 1); const [id, timer] = timers.entries().next().value; timers.delete(id); timer.callback(); await flush(); }
+        async next() { assert.equal(timers.size, 1); const [id, timer] = timers.entries().next().value; now += timer.delay; timers.delete(id); timer.callback(); await flush(); }
     };
 }
 
@@ -103,6 +104,21 @@ test('the selected interval includes server latency without sending before confi
         await flush();assert.equal([...f.timers.values()][0].delay,remaining);
         await f.plugin.stop();assert.equal(f.timers.size,0);assert.equal(f.listeners.size,0);
     }
+});
+
+test('a rate-limited save adds a cooldown after acknowledgement and edits cannot bypass it',async()=>{
+    const f=fixture({acknowledge:false});
+    f.change('phrases','un\ndeux');f.change('interval',3);f.change('restoreOnStop',false);
+    f.plugin.start();await flush();f.rateLimit();f.elapse(11000);
+    f.emit({local:false,wasSaved:true,settings:{type:1,proto:{status:{customStatus:f.writes[0]}}}});
+    await flush();assert.equal(f.writes.length,1);assert.equal([...f.timers.values()][0].delay,15000);
+    assert.equal(f.editListeners.size,0);
+    f.change('interval',5);await flush();
+    assert.equal(f.writes.length,1);assert.equal([...f.timers.values()][0].delay,15000);
+    await f.next();assert.equal(f.writes.length,2);assert.equal(f.writes[1].text,'deux');
+    f.emit({local:false,wasSaved:true,settings:{type:1,proto:{status:{customStatus:f.writes[1]}}}});
+    await flush();assert.equal([...f.timers.values()][0].delay,15000);
+    await f.plugin.stop();assert.equal(f.listeners.size,0);assert.equal(f.editListeners.size,0);assert.equal(f.timers.size,0);
 });
 
 test('stop during an update serializes restoration and never reschedules rotation', async () => {

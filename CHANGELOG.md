@@ -1,5 +1,7 @@
 # PulseCord
 
+- StatusRotator : après une limitation de Discord, espacement adaptatif des envois pour éviter les changements en rafale et les nouvelles tentatives répétées. L'ordre des phrases et des emojis est conservé.
+
 - Badge Pulse User automatique au lancement, registre public signé et désactivation possible dans Communauté ; les deux comptes développeurs conservent Pulse Dev.
 - Connexion du registre par le canal natif Electron, avec routes limitées et réponses bornées, compatible avec les protections réseau de Discord.
 

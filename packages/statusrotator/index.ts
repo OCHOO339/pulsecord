@@ -79,7 +79,7 @@ const settings = definePluginSettings({
     },
     interval: {
         type: OptionType.SLIDER,
-        description: "Intervalle souhaité entre deux envois (secondes). Le temps de confirmation est inclus ; la rotation attend toujours Discord avant de continuer.",
+        description: "Intervalle souhaité entre deux envois (secondes). La rotation attend Discord et espace automatiquement les envois si le serveur les limite.",
         markers: [3, 5, 10, 15, 30, 60],
         default: 5,
         stickToMarkers: false,
@@ -101,6 +101,8 @@ let failures = 0;
 let retryUntil = 0;
 let unconfirmed = false;
 let confirmationLogged = false;
+let serverCooldownMs = 0;
+let nextSendAt = 0;
 
 interface SettingsUpdate {
     local?: boolean;
@@ -112,6 +114,11 @@ interface SettingsUpdate {
 // Discord retries rate-limited saves itself. Keep this phrase until the server
 // acknowledges it instead of overwriting its pending save with the next phrase.
 async function persistStatus(status: CustomStatus, userId: string) {
+    const startedAt = Date.now();
+    let rateLimited = false;
+    const receiveEditInfo = (event: { settings?: { type?: number; changes?: { rateLimited?: boolean } } }) => {
+        if (event.settings?.type === 1 && event.settings.changes?.rateLimited) rateLimited = true;
+    };
     let timeout: ReturnType<typeof setTimeout> | undefined;
     let receive: (event: SettingsUpdate) => void;
     let rejectSave: (error: Error) => void;
@@ -127,14 +134,23 @@ async function persistStatus(status: CustomStatus, userId: string) {
                 resolve();
         };
         FluxDispatcher.subscribe("USER_SETTINGS_PROTO_UPDATE", receive);
+        FluxDispatcher.subscribe("USER_SETTINGS_PROTO_UPDATE_EDIT_INFO", receiveEditInfo);
         timeout = setTimeout(() => reject(Error("Discord n’a pas confirmé l’enregistrement du statut.")), 120000);
     });
     try {
         void CustomStatusSettings.updateSetting(status).catch(error => rejectSave(error));
         await saved;
+        // A delayed acknowledgement is a successful save, not permission to
+        // send another edit immediately into the same rate-limit bucket.
+        if (rateLimited) {
+            serverCooldownMs = Math.max(serverCooldownMs, Math.min(120000, Math.max(15000, Date.now() - startedAt + 1000)));
+            logger.info("Discord limite les changements de statut ; espacement automatique des envois.");
+        }
+        nextSendAt = Date.now() + serverCooldownMs;
     } finally {
         if (timeout !== undefined) clearTimeout(timeout);
         FluxDispatcher.unsubscribe("USER_SETTINGS_PROTO_UPDATE", receive!);
+        FluxDispatcher.unsubscribe("USER_SETTINGS_PROTO_UPDATE_EDIT_INFO", receiveEditInfo);
     }
 }
 // Serialize rotation and restoration, including when stop/start occurs during a request.
@@ -165,7 +181,7 @@ function schedule(token: number, startedAt = Date.now()) {
     const interval = Number.isFinite(settings.store.interval) ? Math.max(3, settings.store.interval) : 5;
     const now = Date.now();
     const remaining = interval * 1000 - Math.max(0, now - startedAt);
-    timer = setTimeout(() => { void enqueue(() => tick(token)); }, Math.max(0, remaining, retryUntil - now));
+    timer = setTimeout(() => { void enqueue(() => tick(token)); }, Math.max(0, remaining, retryUntil - now, nextSendAt - now));
 }
 
 function captureOriginal(userId: string) {
@@ -178,7 +194,7 @@ function captureOriginal(userId: string) {
 
 async function tick(token: number) {
     if (!current(token)) return;
-    if (Date.now() < retryUntil) return schedule(token);
+    if (Date.now() < Math.max(retryUntil, nextSendAt)) return schedule(token);
     const userId = UserStore.getCurrentUser()?.id;
     const phrases = getPhrases();
     if (!userId || !phrases.length) return schedule(token);
